@@ -1,4 +1,5 @@
-import { Args, Query, Resolver } from '@nestjs/graphql';
+import { Args, Mutation, Query, Resolver } from '@nestjs/graphql';
+import { CreateRestaurantDto } from './dtos/create-restaurant.dto';
 import { Restaurant } from './entities/restaurant.entity';
 
 // Resolver 데코레이터. graphql이 스키마를 생성하는데 자동으로 resolver를 찾을 수 있도록 돕는다.
@@ -10,5 +11,12 @@ export class RestaurantResolver {
   @Query((returns) => [Restaurant])
   restaurants(@Args('veganOnly') veganOnly: boolean): Restaurant[] {
     return [];
+  }
+
+  // 데이터를 추가&수정하는 Mutation 데코레이터.
+  // ArgsType데코레이터를 사용하는 Dto를 통해, 클라이언트에서 인자 값을 쉽게 받아옴.
+  @Mutation((returns) => Boolean)
+  createRestaurant(@Args() createRestaurantDto: CreateRestaurantDto): boolean {
+    return true;
   }
 }
