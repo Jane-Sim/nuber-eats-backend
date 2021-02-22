@@ -4,6 +4,7 @@ import { ConfigModule } from '@nestjs/config';
 import { GraphQLModule } from '@nestjs/graphql';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { RestaurantsModule } from './restaurants/restaurants.module';
+import { Restaurant } from './restaurants/entities/restaurant.entity';
 
 @Module({
   imports: [
@@ -26,6 +27,7 @@ import { RestaurantsModule } from './restaurants/restaurants.module';
     }),
     // TypeORM과 postgres의 드라이버 설정을 한다.
     // cross-env로 가져온 .env의 변수값을 가져와 드라이버 설정을 한다.
+    // synchronize를 설정하면, 자동으로 graphql의 스키마 생성과, DB에 사용할 테이블을 생성해준다.
     TypeOrmModule.forRoot({
       type: 'postgres',
       host: process.env.DB_HOST,
@@ -33,8 +35,9 @@ import { RestaurantsModule } from './restaurants/restaurants.module';
       username: process.env.DB_USERNAME,
       password: process.env.DB_PASSWORD,
       database: process.env.DB_NAME,
-      synchronize: true,
+      synchronize: process.env.NODE_ENV !== 'prod',
       logging: true,
+      entities: [Restaurant],
     }),
     // code first로 graphql의 schema파일을 자동생성하는 기능.
     GraphQLModule.forRoot({
