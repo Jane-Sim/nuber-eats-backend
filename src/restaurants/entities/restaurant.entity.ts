@@ -10,32 +10,39 @@
  * 해당 Restaurant entity를 연결한 DB에 테이블을 생성.
  */
 import { Field, ObjectType } from '@nestjs/graphql';
+import { IsBoolean, IsString, Length } from 'class-validator';
 import { Column, Entity, PrimaryGeneratedColumn } from 'typeorm';
 
-@ObjectType()
-@Entity()
+@ObjectType() // nest
+@Entity() // typeORM
 export class Restaurant {
-  @PrimaryGeneratedColumn()
-  @Field((type) => Number)
-  id: number;
+  @PrimaryGeneratedColumn() // typeORM
+  @Field((type) => Number) // nest(gql)
+  id: number; // nest(typescript)
+
+  @Field((type) => String) // nest(gql)
+  @Column() // typeORM
+  @IsString()
+  @Length(5)
+  name: string; // nest(typescript)
+
+  @Field((type) => Boolean) // nest(gql)
+  @Column() // typeORM
+  @IsBoolean()
+  isVegan: boolean; // nest(typescript)
 
   @Field((type) => String)
   @Column()
-  name: string;
-
-  @Field((type) => Boolean)
-  @Column()
-  isVegan: boolean;
-
-  @Field((type) => String)
-  @Column()
+  @IsString()
   address: string;
 
   @Field((type) => String)
   @Column()
+  @IsString()
   ownersName: string;
 
   @Field((type) => String)
   @Column()
+  @IsString()
   categoryName: string;
 }

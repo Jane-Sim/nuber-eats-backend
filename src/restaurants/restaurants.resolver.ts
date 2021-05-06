@@ -22,17 +22,16 @@ export class RestaurantResolver {
   }
 
   // 데이터를 추가&수정하는 Mutation 데코레이터.
-  // ArgsType데코레이터를 사용하는 Dto를 통해, 클라이언트에서 인자 값을 쉽게 받아옴.
+  // InputType데코레이터를 사용하는 Dto를 통해, 클라이언트에서 인자 값을 쉽게 받아옴.
   // createRestaurant 서비스의 비동기 함수를 받기 위해 async, await 사용.
   @Mutation((returns) => Boolean)
   async createRestaurant(
-    @Args() createRestaurantDto: CreateRestaurantDto,
+    @Args('input') createRestaurantDto: CreateRestaurantDto,
   ): Promise<boolean> {
     try {
       await this.restaurantService.createRestaurant(createRestaurantDto);
       return true;
     } catch (e) {
-      console.log(e);
       return false;
     }
   }
