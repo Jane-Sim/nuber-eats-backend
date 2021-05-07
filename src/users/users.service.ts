@@ -16,25 +16,24 @@ export class UsersService {
   ) {}
 
   // 사용자 이메일 만드는 service.
-  // 사용자 계정을 만들 때, 존재하는 유저거나 에러가 나면 string 을 반환하고,
-  // 계정을 만들었으면, return 값을 반환하지 않아서 undefined가 전달된다.
+  // 사용자 계정을 만들 때, 존재하는 유저거나 에러가 나면, ok 속성을 false로 / error 속성인 string을 반환하고,
+  // 계정을 만들었으면, ok 속성을 true로 보낸다.
   async createAccount({
     email,
     password,
     role,
-  }: CreateAccountInput): Promise<string | undefined> {
+  }: CreateAccountInput): Promise<{ ok: boolean; error?: string }> {
     try {
-      // 사용자 email로 계정이 존재한다면, error 문자열을 반환한다.
+      // 사용자 email로 계정이 존재한다면, error 문자열과 false ok를 반환한다.
       const exists = await this.users.findOne({ email });
       if (exists) {
-        return 'There is a user with that email already';
+        return { ok: false, error: 'There is a user with that email already' };
       }
-      // 만약 사용자가 없다면, 해당 사용자를 생성하고, 아무것도 반환하지 않는다.
-      // 아무것도 반환하지 않으면, return 값은 undefined로 반환된다.
       await this.users.save(this.users.create({ email, password, role }));
+      return { ok: true };
     } catch (e) {
-      // 만약 에러가 있다면, 아래와 같은 문자열이 반환된다.
-      return "Couldn't create account";
+      // 만약 에러가 있다면, 아래와 같은 object를 반환한다.
+      return { ok: false, error: "Couldn't create account" };
     }
   }
 }
