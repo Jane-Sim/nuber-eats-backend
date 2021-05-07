@@ -10,7 +10,7 @@
  * 해당 Restaurant entity를 연결한 DB에 테이블을 생성.
  */
 import { Field, ObjectType } from '@nestjs/graphql';
-import { IsBoolean, IsString, Length } from 'class-validator';
+import { IsBoolean, IsOptional, IsString, Length } from 'class-validator';
 import { Column, Entity, PrimaryGeneratedColumn } from 'typeorm';
 
 @ObjectType() // nest
@@ -22,16 +22,19 @@ export class Restaurant {
 
   @Field((type) => String) // nest(gql)
   @Column() // typeORM
-  @IsString()
-  @Length(5)
+  @IsString() // validation
+  @Length(5) // validation
   name: string; // nest(typescript)
 
-  @Field((type) => Boolean) // nest(gql)
-  @Column() // typeORM
-  @IsBoolean()
+  // isVegan의 graphql 기본 값은 true, db칼럼에서도 dafault값은 true.
+  // IsOptional을 통해 속성 값이 옵션이며, 값이 있다면 boolean으로 설정하라
+  @Field((type) => Boolean, { defaultValue: true }) // nest(gql)
+  @Column({ default: true }) // typeORM
+  @IsOptional() // validation
+  @IsBoolean() // validation
   isVegan: boolean; // nest(typescript)
 
-  @Field((type) => String)
+  @Field((type) => String, { defaultValue: '강남' })
   @Column()
   @IsString()
   address: string;
