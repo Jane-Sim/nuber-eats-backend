@@ -6,6 +6,7 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { UsersModule } from './users/users.module';
 import { User } from './users/entities/user.entity';
 import { CommonModule } from './common/common.module';
+import { JwtModule } from './jwt/jwt.module';
 
 @Module({
   imports: [
@@ -47,6 +48,8 @@ import { CommonModule } from './common/common.module';
     GraphQLModule.forRoot({
       autoSchemaFile: true,
     }),
+    // 다이나믹 모듈인 JwtModule에서 forRoot함수를 통해 정적인 JwtModule을 꺼내오자.
+    JwtModule.forRoot(),
     UsersModule,
     CommonModule,
   ],
