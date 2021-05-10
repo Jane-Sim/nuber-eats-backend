@@ -6,14 +6,17 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
+import * as jwt from 'jsonwebtoken';
 import { CreateAccountInput } from './dtos/create-account.dto';
 import { LoginInput } from './dtos/login.dto';
 import { User } from './entities/user.entity';
+import { ConfigService } from '@nestjs/config';
 
 @Injectable()
 export class UsersService {
   constructor(
     @InjectRepository(User) private readonly users: Repository<User>,
+    private readonly config: ConfigService,
   ) {}
 
   // 사용자 이메일 만드는 service.
@@ -63,9 +66,12 @@ export class UsersService {
         };
       }
       // 비밀번호가 일치하면 토큰을 전달한다.
+      // .env 에 넣은 SECRET_KEY를 가져올 수 있도록, config Service를 활용한다.
+      // jwt(생성할 토큰 데이터, private key)
+      const token = jwt.sign({ id: user.id }, this.config.get('SECRET_KEY'));
       return {
         ok: true,
-        token: 'lalalalal',
+        token,
       };
     } catch (error) {
       return {
