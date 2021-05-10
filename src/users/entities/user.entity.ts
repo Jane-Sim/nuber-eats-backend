@@ -54,4 +54,15 @@ export class User extends CoreEntity {
       throw new InternalServerErrorException();
     }
   }
+
+  // 현재 비밀번호와 사용자가 로그인시 보내는 비밀번호가 맞는지 체크하는 함수.
+  // bcrypt의 compare를 통해서 비밀번호를 확인 후 boolean으로 전달한다.
+  async checkPassword(aPassword: string): Promise<boolean> {
+    try {
+      return await bcrypt.compare(aPassword, this.password);
+    } catch (error) {
+      console.log(error);
+      throw new InternalServerErrorException();
+    }
+  }
 }

@@ -7,6 +7,7 @@ import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { CreateAccountInput } from './dtos/create-account.dto';
+import { LoginInput } from './dtos/login.dto';
 import { User } from './entities/user.entity';
 
 @Injectable()
@@ -34,6 +35,43 @@ export class UsersService {
     } catch (e) {
       // 만약 에러가 있다면, 아래와 같은 object를 반환한다.
       return { ok: false, error: "Couldn't create account" };
+    }
+  }
+
+  // 사용자의 login 서비스.
+  // 사용자가 login에 성공하면, 토큰 값을 함께 보낸다.
+  async login({
+    email,
+    password,
+  }: LoginInput): Promise<{ ok: boolean; error?: string; token?: string }> {
+    try {
+      // email로 사용자를 찾는다.
+      const user = await this.users.findOne({ email });
+      if (!user) {
+        return {
+          ok: false,
+          error: 'User not found',
+        };
+      }
+
+      // user entity에서 checkPassword 함수로, 사용자가 보낸 비밀번호를 비교해본다.
+      const passwordCorrect = await user.checkPassword(password);
+      if (!passwordCorrect) {
+        return {
+          ok: false,
+          error: 'Wrong password',
+        };
+      }
+      // 비밀번호가 일치하면 토큰을 전달한다.
+      return {
+        ok: true,
+        token: 'lalalalal',
+      };
+    } catch (error) {
+      return {
+        ok: false,
+        error,
+      };
     }
   }
 }

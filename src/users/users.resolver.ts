@@ -8,6 +8,7 @@ import {
   CreateAccountInput,
   CreateAccountOutput,
 } from './dtos/create-account.dto';
+import { LoginInput, LoginOutput } from './dtos/login.dto';
 import { User } from './entities/user.entity';
 import { UsersService } from './users.service';
 
@@ -43,6 +44,20 @@ export class UsersResolver {
       return {
         ok: false,
         error,
+      };
+    }
+  }
+
+  // 로그인시 사용하는 login Mutation.
+  // 유저가 로그인 성공시, token과 ok를 true로 전달한다.
+  @Mutation((returns) => LoginOutput)
+  async login(@Args('input') loginInput: LoginInput): Promise<LoginOutput> {
+    try {
+      return this.usersService.login(loginInput);
+    } catch (error) {
+      return {
+        ok: false,
+        error: error,
       };
     }
   }
