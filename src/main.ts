@@ -1,4 +1,3 @@
-import { ValidationPipe } from '@nestjs/common';
 /**
  * NestJs의 application을 실행시키는 파일.
  * main.ts는 이름이 변경이 없어야한다.
@@ -8,6 +7,7 @@ import { ValidationPipe } from '@nestjs/common';
 
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
+import { ValidationPipe } from '@nestjs/common';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);

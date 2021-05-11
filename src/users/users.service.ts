@@ -77,4 +77,9 @@ export class UsersService {
       };
     }
   }
+
+  // 사용자 아이디로 유저를 찾는 메서드
+  async findById(id: number): Promise<User> {
+    return this.users.findOne({ id });
+  }
 }
