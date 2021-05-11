@@ -1,4 +1,9 @@
-import { Module } from '@nestjs/common';
+import {
+  MiddlewareConsumer,
+  Module,
+  NestModule,
+  RequestMethod,
+} from '@nestjs/common';
 import * as Joi from 'joi';
 import { ConfigModule } from '@nestjs/config';
 import { GraphQLModule } from '@nestjs/graphql';
@@ -7,6 +12,7 @@ import { UsersModule } from './users/users.module';
 import { User } from './users/entities/user.entity';
 import { CommonModule } from './common/common.module';
 import { JwtModule } from './jwt/jwt.module';
+import { jwtMiddleware } from './jwt/jwt.middleware';
 
 @Module({
   imports: [
@@ -58,4 +64,15 @@ import { JwtModule } from './jwt/jwt.module';
   controllers: [],
   providers: [],
 })
-export class AppModule {}
+// AppModule에서 implements로 jwtMiddleware를 사용하는 방법
+export class AppModule implements NestModule {
+  // module에서는 configure 함수를 사용해야한다.
+  configure(consumer: MiddlewareConsumer) {
+    // consumer를 통해 jwtMiddleware를 적용하고,
+    // 어떤 경로, REST에서만 해당 미들웨어가 동작되는지도 설정 가능하다.
+    consumer.apply(jwtMiddleware).forRoutes({
+      path: '/graphql',
+      method: RequestMethod.ALL,
+    });
+  }
+}
