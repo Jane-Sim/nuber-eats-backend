@@ -49,7 +49,9 @@ import { JwtModule } from './jwt/jwt.module';
       autoSchemaFile: true,
     }),
     // 다이나믹 모듈인 JwtModule에서 forRoot함수를 통해 정적인 JwtModule을 꺼내오자.
-    JwtModule.forRoot(),
+    JwtModule.forRoot({
+      secretKey: process.env.SECRET_KEY,
+    }),
     UsersModule,
     CommonModule,
   ],
