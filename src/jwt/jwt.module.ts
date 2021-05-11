@@ -22,6 +22,7 @@ export class JwtModule {
         },
         // 위와 같은 [{}] 유형의 프로바이더를 아래와 같이 함축적으로 사용 가능하다.
         JwtService,
+        //{ provide: JwtService, useClass: JwtService },
       ],
       exports: [JwtService],
     };
