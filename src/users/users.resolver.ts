@@ -3,7 +3,9 @@
  * user 엔티티와 서비스를 주입해서 사용한다.
  */
 
-import { Args, Mutation, Query, Resolver } from '@nestjs/graphql';
+import { UseGuards } from '@nestjs/common';
+import { Args, Context, Mutation, Query, Resolver } from '@nestjs/graphql';
+import { AuthGuard } from 'src/auth/auth.guard';
 import {
   CreateAccountInput,
   CreateAccountOutput,
@@ -62,6 +64,15 @@ export class UsersResolver {
     }
   }
 
+  // 현재 유저 정보를 가져오는 query.
+  // 해당 query가 실행될 때, middleware에서 토큰 값으로 user 데이터를 request에 넣고,
+  // context를 통해 꺼내온다.
   @Query((returns) => User)
-  me() {}
+  me(@Context() context) {
+    if (!context.user) {
+      return;
+    } else {
+      return context.user;
+    }
+  }
 }

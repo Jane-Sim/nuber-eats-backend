@@ -50,16 +50,17 @@ import { jwtMiddleware } from './jwt/jwt.middleware';
       logging: process.env.NODE_ENV !== 'prod',
       entities: [User],
     }),
-    // code first로 graphql의 schema파일을 자동생성하는 기능.
+    // autoSchemaFile: code first버전으로 graphql의 schema파일을 자동생성하는 기능.
+    // context: apollo server의 context를 통해 다른 resolver에서 해당 context 파라미터값에 접근 가능.(user)
     GraphQLModule.forRoot({
       autoSchemaFile: true,
+      context: ({ req }) => ({ user: req['user'] }),
     }),
     // 다이나믹 모듈인 JwtModule에서 forRoot함수를 통해 정적인 JwtModule을 꺼내오자.
     JwtModule.forRoot({
       secretKey: process.env.SECRET_KEY,
     }),
     UsersModule,
-    CommonModule,
   ],
   controllers: [],
   providers: [],
@@ -72,7 +73,7 @@ export class AppModule implements NestModule {
     // 어떤 경로, REST에서만 해당 미들웨어가 동작되는지도 설정 가능하다.
     consumer.apply(jwtMiddleware).forRoutes({
       path: '/graphql',
-      method: RequestMethod.ALL,
+      method: RequestMethod.POST,
     });
   }
 }
