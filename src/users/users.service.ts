@@ -10,6 +10,7 @@ import { CreateAccountInput } from './dtos/create-account.dto';
 import { LoginInput } from './dtos/login.dto';
 import { User } from './entities/user.entity';
 import { JwtService } from 'src/jwt/jwt.service';
+import { EditProfileInput } from './dtos/edit-profile.dto';
 
 @Injectable()
 export class UsersService {
@@ -81,5 +82,23 @@ export class UsersService {
   // 사용자 아이디로 유저를 찾는 메서드
   async findById(id: number): Promise<User> {
     return this.users.findOne({ id });
+  }
+
+  // 프로필을 변경하는 함수.
+  async editProfile(
+    userId: number,
+    { email, password }: EditProfileInput,
+  ): Promise<User> {
+    const user = await this.users.findOne(userId);
+    if (email) {
+      user.email = email;
+    }
+    if (password) {
+      user.password = password;
+    }
+    // update 함수는, db에 update 쿼리문만 날리기에, entity update를 캐치할 수 없다.
+    // 고로, @BeforeUpdate 데코레이터가 있는 user entity의 hashPassword 함수가 실행되지 않는다.
+    // save 함수는, 저장하려는 entity가 존재하면 해당 entity를 업데이트 해준다.
+    return this.users.save(user);
   }
 }

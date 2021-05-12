@@ -10,7 +10,7 @@ import {
 import * as bcrypt from 'bcrypt';
 import { IsEmail, IsEnum } from 'class-validator';
 import { CoreEntity } from 'src/common/entities/core.entity';
-import { BeforeInsert, Column, Entity } from 'typeorm';
+import { BeforeInsert, BeforeUpdate, Column, Entity } from 'typeorm';
 
 // 사용자의 권한을 사용하는 enum
 enum UserRole {
@@ -44,7 +44,10 @@ export class User extends CoreEntity {
   // typeorm에서 제공하는 Entity Listeners and Subscribers중 하나인
   // @BeforeInsert() 데코레이터를 이용하여, typeorm이 db에 데이터를 저장하기 전에,
   // Repository.save() 함수 실행 전에, password 속성 값을 해싱한다.
+  // @BeforeUpdate() 데코레이터를 이용해서, typeorm이 db에 업데이트 하기 전에, 변경된 password 속성 값을 해싱한다.
+  // @BeforeUpdate() 는 특정 entity를 update 해야 실행되기에, typeOrm의 save 함수로 실행해야 발동한다.
   @BeforeInsert()
+  @BeforeUpdate()
   async hashPassword(): Promise<void> {
     try {
       // bcrypt.hash 함수에 해싱시킬 데이터와, round 값을 넘긴다. (round default = 10)

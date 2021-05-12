@@ -11,6 +11,7 @@ import {
   CreateAccountInput,
   CreateAccountOutput,
 } from './dtos/create-account.dto';
+import { EditProfileInput, EditProfileOutput } from './dtos/edit-profile.dto';
 import { LoginInput, LoginOutput } from './dtos/login.dto';
 import { UserProfileInput, UserProfileOutput } from './dtos/user-profile.dto';
 import { User } from './entities/user.entity';
@@ -76,6 +77,7 @@ export class UsersResolver {
     return authUser;
   }
 
+  // 특정 유저의 프로필을 가져오는 함수.
   @UseGuards(AuthGuard)
   @Query((returns) => UserProfileOutput)
   async userProfile(
@@ -94,6 +96,28 @@ export class UsersResolver {
       return {
         error: 'User Not Found',
         ok: false,
+      };
+    }
+  }
+
+  // 유저 프로필 정보를 수정하는 Mutation.
+  // 토큰 값으로 유저 정보를 가져온 뒤, email, password 등 유저가 변경하려는 값이 있으면,
+  // 변경하려는 값으로 user entity를 업데이트한다.
+  @UseGuards(AuthGuard)
+  @Mutation((returns) => EditProfileOutput)
+  async editProfile(
+    @AuthUser() authUser: User,
+    @Args('input') editProfileInput: EditProfileInput,
+  ): Promise<EditProfileOutput> {
+    try {
+      await this.usersService.editProfile(authUser.id, editProfileInput);
+      return {
+        ok: true,
+      };
+    } catch (error) {
+      return {
+        ok: false,
+        error,
       };
     }
   }
