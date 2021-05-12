@@ -5,6 +5,7 @@
 
 import { UseGuards } from '@nestjs/common';
 import { Args, Context, Mutation, Query, Resolver } from '@nestjs/graphql';
+import { AuthUser } from 'src/auth/auth-user.decorator';
 import { AuthGuard } from 'src/auth/auth.guard';
 import {
   CreateAccountInput,
@@ -67,14 +68,10 @@ export class UsersResolver {
   // 현재 유저 정보를 가져오는 query.
   // 해당 query가 실행될 때, middleware에서 토큰 값으로 user 데이터를 request에 넣고,
   // Guard 에서 request context에 접근 후, 해당 유저 데이터가 존재할 때 me함수를 실행시킨다.
-  // guard 에서 증명이 되면, Context 데코레이터를 통해 user 정보를 context에서 꺼내온다.
+  // guard 에서 증명이 되면, @AuthUser 데코레이터를 통해 user 정보를 request context에서 꺼내온다.
   @Query((returns) => User)
   @UseGuards(AuthGuard)
-  me(@Context() context): User {
-    if (!context.user) {
-      return;
-    } else {
-      return context.user;
-    }
+  me(@AuthUser() authUser: User): User {
+    return authUser;
   }
 }
