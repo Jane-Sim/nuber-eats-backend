@@ -61,7 +61,6 @@ export class User extends CoreEntity {
     try {
       return await bcrypt.compare(aPassword, this.password);
     } catch (error) {
-      console.log(error);
       throw new InternalServerErrorException();
     }
   }

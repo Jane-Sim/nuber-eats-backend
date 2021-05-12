@@ -49,7 +49,6 @@ export class RestaurantResolver {
       await this.restaurantService.updateRestaurant(updateRestaurantDto);
       return true;
     } catch (error) {
-      console.log(error);
       return false;
     }
   }
