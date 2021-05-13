@@ -41,6 +41,10 @@ export class User extends CoreEntity {
   @IsEnum(UserRole)
   role: UserRole;
 
+  @Column({ default: false })
+  @Field((type) => Boolean)
+  verified: boolean;
+
   // typeorm에서 제공하는 Entity Listeners and Subscribers중 하나인
   // @BeforeInsert() 데코레이터를 이용하여, typeorm이 db에 데이터를 저장하기 전에,
   // Repository.save() 함수 실행 전에, password 속성 값을 해싱한다.
