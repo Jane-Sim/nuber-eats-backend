@@ -6,12 +6,12 @@ import { User } from './entities/user.entity';
 import { UsersService } from './users.service';
 
 // 유닛테스트에서는 DB에서 데이터를 꺼내와 사용하지 않는다.
-// 가짜 함수, 데이터를 사용하기 위해 mocking Repository를 생성한다.
-const mockRepository = {
+// 가짜 함수, 데이터를 사용하기 위해 mocking Repository를 생성하는 함수를 반환한다.
+const mockRepository = () => ({
   findOne: jest.fn(),
   save: jest.fn(),
   create: jest.fn(),
-};
+});
 
 // JwtSerivce에서 사용하는 함수를 사용하기 위해, Mock function 추가
 const mockJwtService = {
@@ -43,7 +43,7 @@ describe('UserService', () => {
         // mockRepository를 이용해, repository의 fineOne, save 등의 함수를 사용할 수 있도록 설정한다.
         {
           provide: getRepositoryToken(User),
-          useValue: mockRepository,
+          useValue: mockRepository(),
         },
         // Jwt Service를 불러온다.
         {
@@ -63,6 +63,13 @@ describe('UserService', () => {
 
   //사용자를 생성하는 테스트
   describe('createAccount', () => {
+    // 자주 사용하는 인자 값을 전역으로 설정
+    const createAccountArgs = {
+      email: '',
+      password: '',
+      role: 0,
+    };
+
     // 존재하는 사용자를 생성할 때, 실패하는 테스트
     it('should fail if use exists', async () => {
       // mockResolvedValue을 이용해서, usersRepository에서 findOne 함수는,
@@ -74,16 +81,31 @@ describe('UserService', () => {
         email: 'aalalalalalalal',
       });
       // createAccount를 실행하면,
-      const result = await service.createAccount({
-        email: '',
-        password: '',
-        role: 0,
-      });
+      const result = await service.createAccount(createAccountArgs);
       // 위에서 findOne을 통해 유저를 반환하기에, 결과 값이 아래와 일치하는걸 확인할 수 있다.
       expect(result).toMatchObject({
         ok: false,
         error: 'There is a user with that email already',
       });
+    });
+
+    // 사용자를 생성하는 테스트.
+    it('should create a new user', async () => {
+      usersRepository.findOne.mockResolvedValue(undefined);
+      // user를 create 함수로 생성시, 반환하는 값을 createAccountArgs 로 지정한다.
+      usersRepository.create.mockReturnValue(createAccountArgs);
+      //await this.users.findOne() / mockResolvedValue  await를 쓰는 코드는 resolve,
+      //this.users.create() / mockReturnValue           await를 안쓰는 코드는 return
+
+      await service.createAccount(createAccountArgs);
+      // create 함수가 1번만 실행되었는지 확인해본다.
+      expect(usersRepository.create).toHaveBeenCalledTimes(1);
+      // create 함수가 어떤 인자와 같이 불렸는지 확인해본다.
+      expect(usersRepository.create).toHaveBeenCalledWith(createAccountArgs);
+      // save 함수가 실행되었는지 확인해본다. (횟수 상관X)
+      expect(usersRepository.save).toHaveBeenCalled();
+      // save 함수가 createAccountArgs 인자와 같이 불렸는지 확인해본다.
+      expect(usersRepository.save).toHaveBeenCalledWith(createAccountArgs);
     });
   });
   it.todo('login');
