@@ -53,6 +53,7 @@ describe('UserService', () => {
       ],
     }).compile();
     service = module.get<UsersService>(UsersService);
+    usersRepository = module.get(getRepositoryToken(User));
   });
 
   // 유저 서비스가 존재하는지 확인.
@@ -60,7 +61,31 @@ describe('UserService', () => {
     expect(service).toBeDefined();
   });
 
-  it.todo('createAccount');
+  //사용자를 생성하는 테스트
+  describe('createAccount', () => {
+    // 존재하는 사용자를 생성할 때, 실패하는 테스트
+    it('should fail if use exists', async () => {
+      // mockResolvedValue을 이용해서, usersRepository에서 findOne 함수는,
+      // 설정한 값을 반환할 거라고 설정하자.
+      // 그러면, findOne이 TypeOrm을 통해 DB에 가지않고, 해당 mock value를 반환한다.
+      // 또한 유저가 존재한다는 조건이 생긴다.
+      usersRepository.findOne.mockResolvedValue({
+        id: 1,
+        email: 'aalalalalalalal',
+      });
+      // createAccount를 실행하면,
+      const result = await service.createAccount({
+        email: '',
+        password: '',
+        role: 0,
+      });
+      // 위에서 findOne을 통해 유저를 반환하기에, 결과 값이 아래와 일치하는걸 확인할 수 있다.
+      expect(result).toMatchObject({
+        ok: false,
+        error: 'There is a user with that email already',
+      });
+    });
+  });
   it.todo('login');
   it.todo('findById');
   it.todo('editProfile');
