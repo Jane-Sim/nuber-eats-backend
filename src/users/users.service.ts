@@ -147,7 +147,9 @@ export class UsersService {
       );
       if (verification) {
         verification.user.verified = true;
-        this.users.save(verification.user);
+        await this.users.save(verification.user);
+        // 인증이 완료된 유저의 verification 데이터는 필요가 없으니 삭제한다.
+        await this.verifications.delete(verification.id);
         return {
           ok: true,
         };
