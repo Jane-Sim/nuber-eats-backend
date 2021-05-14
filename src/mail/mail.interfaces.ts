@@ -6,3 +6,9 @@ export interface MailModuleOptions {
   domain: string;
   fromEmail: string;
 }
+
+// 이메일 변수를 담을 interface
+export interface EmailVar {
+  key: string;
+  value: string;
+}
