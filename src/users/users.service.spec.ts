@@ -1,8 +1,10 @@
 import { Test } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
 import { JwtService } from 'src/jwt/jwt.service';
+import { MailService } from 'src/mail/mail.service';
 import { Repository } from 'typeorm';
 import { User } from './entities/user.entity';
+import { Verification } from './entities/verification.entity';
 import { UsersService } from './users.service';
 
 // 유닛테스트에서는 DB에서 데이터를 꺼내와 사용하지 않는다.
@@ -19,6 +21,10 @@ const mockJwtService = {
   verify: jest.fn(),
 };
 
+const mockMailService = {
+  sendVerificationEmail: jest.fn(),
+};
+
 // Repository의 모든 함수들을 optional하게 가져오되, 함수의 타입이 mock 타입이도록 설정.
 // Partial 으로 모든 속성 값을 가져오도록 만들고,
 // Record를 통해 T 타입을 가진 k 리스트 유형을 만든다. ex) Record<"hello", number> number 타입을 가진 hello.
@@ -32,6 +38,8 @@ describe('UserService', () => {
   let service: UsersService;
   // MockRepository에 User entity 를 넣어, T 타입을 지정한다.
   let usersRepository: MockRepository<User>;
+  let verificationsRepository: MockRepository<Verification>;
+  let emailService: MailService;
 
   // 테스트를 진행하기 전, 모듈과 서비스를 가져와 지정한다.
   beforeAll(async () => {
@@ -45,15 +53,25 @@ describe('UserService', () => {
           provide: getRepositoryToken(User),
           useValue: mockRepository(),
         },
+        {
+          provide: getRepositoryToken(Verification),
+          useValue: mockRepository(),
+        },
         // Jwt Service를 불러온다.
         {
           provide: JwtService,
           useValue: mockJwtService,
         },
+        {
+          provide: MailService,
+          useValue: mockMailService,
+        },
       ],
     }).compile();
     service = module.get<UsersService>(UsersService);
+    emailService = module.get<MailService>(MailService);
     usersRepository = module.get(getRepositoryToken(User));
+    verificationsRepository = module.get(getRepositoryToken(Verification));
   });
 
   // 유저 서비스가 존재하는지 확인.
@@ -91,21 +109,57 @@ describe('UserService', () => {
 
     // 사용자를 생성하는 테스트.
     it('should create a new user', async () => {
-      usersRepository.findOne.mockResolvedValue(undefined);
-      // user를 create 함수로 생성시, 반환하는 값을 createAccountArgs 로 지정한다.
-      usersRepository.create.mockReturnValue(createAccountArgs);
+      /** typeOrm을 통해 반환되는 값을 지정한다. */
       //await this.users.findOne() / mockResolvedValue  await를 쓰는 코드는 resolve,
       //this.users.create() / mockReturnValue           await를 안쓰는 코드는 return
 
-      await service.createAccount(createAccountArgs);
-      // create 함수가 1번만 실행되었는지 확인해본다.
+      // findOne을 통해 반환되는 유저 값이 없어야, 전체 코드가 실행가능.
+      usersRepository.findOne.mockResolvedValue(undefined);
+      // user를 create 함수로 생성시, 반환하는 값을 createAccountArgs 로 지정한다.
+      usersRepository.create.mockReturnValue(createAccountArgs);
+      usersRepository.save.mockResolvedValue(createAccountArgs);
+      // verifications의 create, save시 반환되는 값을 지정한다.
+      verificationsRepository.create.mockReturnValue({
+        user: createAccountArgs,
+      });
+      verificationsRepository.save.mockResolvedValue({
+        code: 'code',
+      });
+
+      /** createAccount 서비스 실행시, 각 함수들이 실행되었는지 테스트한다. */
+      const result = await service.createAccount(createAccountArgs);
+
+      // user create 함수가 1번만 실행되었는지 확인해본다.
       expect(usersRepository.create).toHaveBeenCalledTimes(1);
-      // create 함수가 어떤 인자와 같이 불렸는지 확인해본다.
+      // user create 함수가 createAccountArgs 인자와 같이 불렸는지 확인해본다.
       expect(usersRepository.create).toHaveBeenCalledWith(createAccountArgs);
-      // save 함수가 실행되었는지 확인해본다. (횟수 상관X)
+
+      // user save 함수가 실행되었는지 확인해본다. (횟수 상관X)
       expect(usersRepository.save).toHaveBeenCalled();
-      // save 함수가 createAccountArgs 인자와 같이 불렸는지 확인해본다.
+      // user save 함수가 createAccountArgs 인자와 같이 불렸는지 확인해본다.
       expect(usersRepository.save).toHaveBeenCalledWith(createAccountArgs);
+
+      // verification create 함수가 1번만 실행되었는지 확인해본다.
+      expect(verificationsRepository.create).toHaveBeenCalledTimes(1);
+      // verification create 함수가 createAccountArgs 인자와 같이 불렸는지 확인해본다.
+      expect(verificationsRepository.create).toHaveBeenCalledWith({
+        user: createAccountArgs,
+      });
+      // verification save 함수가 실행되었는지 확인해본다. (횟수 상관X)
+      expect(verificationsRepository.save).toHaveBeenCalled();
+      // verification save 함수가 createAccountArgs 인자와 같이 불렸는지 확인해본다.
+      expect(verificationsRepository.save).toHaveBeenCalledWith({
+        user: createAccountArgs,
+      });
+      // emailService sendVerificationEmail 함수가 1번만 실행되었는지 확인해본다.
+      expect(emailService.sendVerificationEmail).toHaveBeenCalledTimes(1);
+      // expect.any()를 통해, 인자 값 type을 체크할 수 있다.
+      expect(emailService.sendVerificationEmail).toHaveBeenCalledWith(
+        expect.any(String),
+        expect.any(String),
+      );
+      // createAccount의 결과 값이 일치하는지 마지막으로 테스트해본다.
+      expect(result).toEqual({ ok: true });
     });
   });
   it.todo('login');
