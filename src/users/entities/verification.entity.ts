@@ -2,9 +2,10 @@
  * user의 검증 정보를 담는 entity.
  * User와 one-to-one 관계를 갖는다.
  */
+import { v4 as uuidv4 } from 'uuid';
 import { Field, InputType, ObjectType } from '@nestjs/graphql';
 import { CoreEntity } from 'src/common/entities/core.entity';
-import { Column, Entity, JoinColumn, OneToOne } from 'typeorm';
+import { BeforeInsert, Column, Entity, JoinColumn, OneToOne } from 'typeorm';
 import { User } from './user.entity';
 
 @InputType({ isAbstract: true })
@@ -20,4 +21,11 @@ export class Verification extends CoreEntity {
   @OneToOne((type) => User)
   @JoinColumn()
   user: User;
+
+  // insert 함수가 실행되기 전,
+  @BeforeInsert()
+  createCode(): void {
+    // 고유한 값을 랜덤한 문자로 만들어주는 uuid 함수를 통해 code 값 지정.
+    this.code = uuidv4();
+  }
 }
