@@ -32,7 +32,9 @@ export class User extends CoreEntity {
   @IsEmail()
   email: string;
 
-  @Column()
+  // password가 BeforeUpdate 데코레이터로 무분별하게 hashing되기에,
+  // find/findOne으로 user를 찾을 시, password 속성 값을 제외하고 User Entity를 전달한다.
+  @Column({ select: false })
   @Field((type) => String)
   password: string;
 
@@ -53,12 +55,15 @@ export class User extends CoreEntity {
   @BeforeInsert()
   @BeforeUpdate()
   async hashPassword(): Promise<void> {
-    try {
-      // bcrypt.hash 함수에 해싱시킬 데이터와, round 값을 넘긴다. (round default = 10)
-      // salt round는 해싱 계산 횟수를 뜻한다. 값이 높을 수록 계산 수 up. ex) 2^10 = 1000회
-      this.password = await bcrypt.hash(this.password, 10);
-    } catch (error) {
-      throw new InternalServerErrorException();
+    // 사용자의 password가 select로 불러왔을 경우에만, hashing한다.
+    if (this.password) {
+      try {
+        // bcrypt.hash 함수에 해싱시킬 데이터와, round 값을 넘긴다. (round default = 10)
+        // salt round는 해싱 계산 횟수를 뜻한다. 값이 높을 수록 계산 수 up. ex) 2^10 = 1000회
+        this.password = await bcrypt.hash(this.password, 10);
+      } catch (error) {
+        throw new InternalServerErrorException();
+      }
     }
   }
 

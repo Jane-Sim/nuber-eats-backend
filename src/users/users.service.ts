@@ -18,7 +18,7 @@ export class UsersService {
   constructor(
     @InjectRepository(User) private readonly users: Repository<User>,
     @InjectRepository(Verification)
-    private readonly verification: Repository<Verification>,
+    private readonly verifications: Repository<Verification>,
     private readonly jwtService: JwtService,
   ) {}
 
@@ -40,7 +40,7 @@ export class UsersService {
         this.users.create({ email, password, role }),
       );
       // 해당 유저의 verification 데이터도 생성한다.
-      await this.verification.save(this.verification.create({ user }));
+      await this.verifications.save(this.verifications.create({ user }));
       return { ok: true };
     } catch (e) {
       // 만약 에러가 있다면, 아래와 같은 object를 반환한다.
@@ -55,8 +55,12 @@ export class UsersService {
     password,
   }: LoginInput): Promise<{ ok: boolean; error?: string; token?: string }> {
     try {
-      // email로 사용자를 찾는다.
-      const user = await this.users.findOne({ email });
+      // email로 사용자를 찾는다. password 속성 값이 select: false로 지정되어 있기에,
+      // select를 통해서 id와 password select 쿼리문을 작성해준다.
+      const user = await this.users.findOne(
+        { email },
+        { select: ['id', 'password'] },
+      );
       if (!user) {
         return {
           ok: false,
@@ -101,7 +105,7 @@ export class UsersService {
       user.email = email;
       // 사용자가 이메일을 변경하면 다시 검증할 수 있도록, 해당 유저 정보로 verification을 업데이트한다.
       user.verified = false;
-      await this.verification.save(this.verification.create({ user }));
+      await this.verifications.save(this.verifications.create({ user }));
     }
     if (password) {
       user.password = password;
@@ -110,5 +114,24 @@ export class UsersService {
     // 고로, @BeforeUpdate 데코레이터가 있는 user entity의 hashPassword 함수가 실행되지 않는다.
     // save 함수는, 저장하려는 entity가 존재하면 해당 entity를 업데이트 해준다.
     return this.users.save(user);
+  }
+
+  async verifyEmail(code: string): Promise<boolean> {
+    try {
+      const verification = await this.verifications.findOne(
+        { code },
+        // relations 설정을 해야, typeOrm의 relation 속성이 발동된다.
+        // relations는 해당 entity object를 가져오며, loadRelationIds는 해당 entity의 foregin key인 id값만 가져온다.
+        { relations: ['user'] },
+      );
+      if (verification) {
+        verification.user.verified = true;
+        this.users.save(verification.user);
+        return true;
+      }
+      throw new Error();
+    } catch (error) {
+      return false;
+    }
   }
 }
