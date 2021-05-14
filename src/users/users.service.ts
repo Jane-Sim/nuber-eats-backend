@@ -6,12 +6,17 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { CreateAccountInput } from './dtos/create-account.dto';
-import { LoginInput } from './dtos/login.dto';
+import {
+  CreateAccountInput,
+  CreateAccountOutput,
+} from './dtos/create-account.dto';
+import { LoginInput, LoginOutput } from './dtos/login.dto';
 import { User } from './entities/user.entity';
 import { JwtService } from 'src/jwt/jwt.service';
-import { EditProfileInput } from './dtos/edit-profile.dto';
+import { EditProfileInput, EditProfileOutput } from './dtos/edit-profile.dto';
 import { Verification } from './entities/verification.entity';
+import { UserProfileOutput } from './dtos/user-profile.dto';
+import { VerifyEmailOutput } from './dtos/verify-email.dto';
 
 @Injectable()
 export class UsersService {
@@ -29,7 +34,7 @@ export class UsersService {
     email,
     password,
     role,
-  }: CreateAccountInput): Promise<{ ok: boolean; error?: string }> {
+  }: CreateAccountInput): Promise<CreateAccountOutput> {
     try {
       // 사용자 email로 계정이 존재한다면, error 문자열과 false ok를 반환한다.
       const exists = await this.users.findOne({ email });
@@ -50,10 +55,7 @@ export class UsersService {
 
   // 사용자의 login 서비스.
   // 사용자가 login에 성공하면, 토큰 값을 함께 보낸다.
-  async login({
-    email,
-    password,
-  }: LoginInput): Promise<{ ok: boolean; error?: string; token?: string }> {
+  async login({ email, password }: LoginInput): Promise<LoginOutput> {
     try {
       // email로 사용자를 찾는다. password 속성 값이 select: false로 지정되어 있기에,
       // select를 통해서 id와 password select 쿼리문을 작성해준다.
@@ -91,32 +93,51 @@ export class UsersService {
   }
 
   // 사용자 아이디로 유저를 찾는 메서드
-  async findById(id: number): Promise<User> {
-    return this.users.findOne({ id });
+  async findById(id: number): Promise<UserProfileOutput> {
+    try {
+      const user = await this.users.findOne({ id });
+      if (user) {
+        return {
+          ok: true,
+          user: user,
+        };
+      }
+    } catch (error) {
+      return { ok: false, error: 'User Not Found' };
+    }
   }
 
   // 프로필을 변경하는 함수.
   async editProfile(
     userId: number,
     { email, password }: EditProfileInput,
-  ): Promise<User> {
-    const user = await this.users.findOne(userId);
-    if (email) {
-      user.email = email;
-      // 사용자가 이메일을 변경하면 다시 검증할 수 있도록, 해당 유저 정보로 verification을 업데이트한다.
-      user.verified = false;
-      await this.verifications.save(this.verifications.create({ user }));
+  ): Promise<EditProfileOutput> {
+    try {
+      const user = await this.users.findOne(userId);
+      if (email) {
+        user.email = email;
+        // 사용자가 이메일을 변경하면 다시 검증할 수 있도록, 해당 유저 정보로 verification을 업데이트한다.
+        user.verified = false;
+        await this.verifications.save(this.verifications.create({ user }));
+      }
+      if (password) {
+        user.password = password;
+      }
+      // update 함수는, db에 update 쿼리문만 날리기에, entity update를 캐치할 수 없다.
+      // 고로, @BeforeUpdate 데코레이터가 있는 user entity의 hashPassword 함수가 실행되지 않는다.
+      // save 함수는, 저장하려는 entity가 존재하면 해당 entity를 업데이트 해주기에 update 대신 save를 사용한다.
+      this.users.save(user);
+      return {
+        ok: true,
+      };
+    } catch (error) {
+      return { ok: false, error: 'Could not update profile.' };
     }
-    if (password) {
-      user.password = password;
-    }
-    // update 함수는, db에 update 쿼리문만 날리기에, entity update를 캐치할 수 없다.
-    // 고로, @BeforeUpdate 데코레이터가 있는 user entity의 hashPassword 함수가 실행되지 않는다.
-    // save 함수는, 저장하려는 entity가 존재하면 해당 entity를 업데이트 해준다.
-    return this.users.save(user);
   }
 
-  async verifyEmail(code: string): Promise<boolean> {
+  // 사용자의 이메일을 통해, 검증 code를 받은 경우,
+  // 해당 사용자의 검증 상태를 변경해준다.
+  async verifyEmail(code: string): Promise<VerifyEmailOutput> {
     try {
       const verification = await this.verifications.findOne(
         { code },
@@ -127,11 +148,13 @@ export class UsersService {
       if (verification) {
         verification.user.verified = true;
         this.users.save(verification.user);
-        return true;
+        return {
+          ok: true,
+        };
       }
-      throw new Error();
+      return { ok: false, error: 'Verification not found.' };
     } catch (error) {
-      return false;
+      return { ok: false, error };
     }
   }
 }

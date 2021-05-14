@@ -33,39 +33,14 @@ export class UsersResolver {
   async createAccount(
     @Args('input') createAccountInput: CreateAccountInput,
   ): Promise<CreateAccountOutput> {
-    try {
-      const { ok, error } = await this.usersService.createAccount(
-        createAccountInput,
-      );
-      if (error) {
-        return {
-          ok,
-          error,
-        };
-      }
-      return {
-        ok,
-      };
-    } catch (error) {
-      return {
-        ok: false,
-        error,
-      };
-    }
+    return this.usersService.createAccount(createAccountInput);
   }
 
   // 로그인시 사용하는 login Mutation.
   // 유저가 로그인 성공시, token과 ok를 true로 전달한다.
   @Mutation((returns) => LoginOutput)
   async login(@Args('input') loginInput: LoginInput): Promise<LoginOutput> {
-    try {
-      return this.usersService.login(loginInput);
-    } catch (error) {
-      return {
-        ok: false,
-        error: error,
-      };
-    }
+    return this.usersService.login(loginInput);
   }
 
   // 현재 유저 정보를 가져오는 query.
@@ -84,21 +59,7 @@ export class UsersResolver {
   async userProfile(
     @Args() userProfileInput: UserProfileInput,
   ): Promise<UserProfileOutput> {
-    try {
-      const user = await this.usersService.findById(userProfileInput.userId);
-      if (!user) {
-        throw Error();
-      }
-      return {
-        ok: true,
-        user,
-      };
-    } catch (error) {
-      return {
-        error: 'User Not Found',
-        ok: false,
-      };
-    }
+    return this.usersService.findById(userProfileInput.userId);
   }
 
   // 유저 프로필 정보를 수정하는 Mutation.
@@ -110,17 +71,7 @@ export class UsersResolver {
     @AuthUser() authUser: User,
     @Args('input') editProfileInput: EditProfileInput,
   ): Promise<EditProfileOutput> {
-    try {
-      await this.usersService.editProfile(authUser.id, editProfileInput);
-      return {
-        ok: true,
-      };
-    } catch (error) {
-      return {
-        ok: false,
-        error,
-      };
-    }
+    return this.usersService.editProfile(authUser.id, editProfileInput);
   }
 
   // 사용자의 이메일을 통해, 검증 code를 받은 경우,
@@ -129,16 +80,6 @@ export class UsersResolver {
   async verifyEmail(
     @Args('input') { code }: VerifyEmailInput,
   ): Promise<VerifyEmailOutput> {
-    try {
-      await this.usersService.verifyEmail(code);
-      return {
-        ok: true,
-      };
-    } catch (error) {
-      return {
-        ok: false,
-        error,
-      };
-    }
+    return this.usersService.verifyEmail(code);
   }
 }
