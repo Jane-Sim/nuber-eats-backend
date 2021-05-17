@@ -11,6 +11,7 @@ import { UsersService } from './users.service';
 // 가짜 함수, 데이터를 사용하기 위해 mocking Repository를 생성하는 함수를 반환한다.
 const mockRepository = () => ({
   findOne: jest.fn(),
+  findOneOrFail: jest.fn(),
   save: jest.fn(),
   create: jest.fn(),
 });
@@ -242,6 +243,28 @@ describe('UserService', () => {
       expect(result).toEqual({ ok: false, error: expect.any(Error) });
     });
   });
-  it.todo('findById');
+
+  // 사용자 아이디로 유저를 찾는 테스트
+  describe('findById', () => {
+    // 사용자를 찾는데 사용하는 데이터
+    const findByIdArgs = {
+      id: 1,
+    };
+
+    // 유저를 찾았을 경우
+    it('should find an existing user', async () => {
+      usersRepository.findOneOrFail.mockResolvedValue(findByIdArgs);
+      const result = await service.findById(1);
+      expect(result).toEqual({ ok: true, user: findByIdArgs });
+    });
+
+    // 유저를 찾지 못했을 경우
+    it('should fail if no user is found', async () => {
+      usersRepository.findOneOrFail.mockRejectedValue(new Error('Async error'));
+      const result = await service.findById(1);
+      expect(result).toEqual({ ok: false, error: 'User Not Found' });
+    });
+  });
+
   it.todo('editProfile');
 });
