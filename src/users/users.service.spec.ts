@@ -17,7 +17,7 @@ const mockRepository = () => ({
 
 // JwtSerivce에서 사용하는 함수를 사용하기 위해, Mock function 추가
 const mockJwtService = {
-  sign: jest.fn(),
+  sign: jest.fn(() => 'signed-token-baby'),
   verify: jest.fn(),
 };
 
@@ -40,9 +40,11 @@ describe('UserService', () => {
   let usersRepository: MockRepository<User>;
   let verificationsRepository: MockRepository<Verification>;
   let emailService: MailService;
+  let jwtService: JwtService;
 
-  // 테스트를 진행하기 전, 모듈과 서비스를 가져와 지정한다.
-  beforeAll(async () => {
+  // beforeAll: 모든 테스트를 진행하기 전, 단 한번만 모듈과 서비스를 가져와 지정한다.
+  // beforeEach: 각 테스트 케이스를 진행하기 전, 한 번씩 모듈과 서비스를 가져와 지정한다.
+  beforeEach(async () => {
     // createTestingModule을 통해, userService만 테스트하는 모듈을 불러온다.
     const module = await Test.createTestingModule({
       providers: [
@@ -70,6 +72,7 @@ describe('UserService', () => {
     }).compile();
     service = module.get<UsersService>(UsersService);
     emailService = module.get<MailService>(MailService);
+    jwtService = module.get<JwtService>(JwtService);
     usersRepository = module.get(getRepositoryToken(User));
     verificationsRepository = module.get(getRepositoryToken(Verification));
   });
@@ -161,8 +164,84 @@ describe('UserService', () => {
       // createAccount의 결과 값이 일치하는지 마지막으로 테스트해본다.
       expect(result).toEqual({ ok: true });
     });
+
+    it('should fail on exception', async () => {
+      // findOne을 통해 aait이 fail 하도록 에러를 설정한다.
+      usersRepository.findOne.mockRejectedValue(new Error('Async error'));
+      const result = await service.createAccount(createAccountArgs);
+      expect(result).toEqual({ ok: false, error: "Couldn't create account" });
+    });
   });
-  it.todo('login');
+
+  // 로그인을 시도하는 테스트
+  describe('login', () => {
+    // 로그인 테스트 데이터
+    const loginArgs = {
+      email: 'ssiox3@gmail.com',
+      password: 'ssiox3.password',
+    };
+
+    // user를 못 찾을 때의 테스트
+    it('should fail if user does not exist', async () => {
+      // user findOne의 반환 값을 null로 지정.
+      usersRepository.findOne.mockResolvedValue(null);
+
+      const result = await service.login(loginArgs);
+
+      // user findOne이 1번만 불렸는지, email, select Object와 같이 호출되었는지 확인한다.
+      expect(usersRepository.findOne).toHaveBeenCalledTimes(1);
+      expect(usersRepository.findOne).toHaveBeenCalledWith(
+        expect.any(Object),
+        expect.any(Object),
+      );
+      // 유저를 못 찾았다면, 아래의 반환 값과 일치해야한다.
+      expect(result).toEqual({
+        ok: false,
+        error: 'User not found',
+      });
+    });
+
+    // user의 비밀번호가 일치하지 않는 테스트
+    it('should fail if the password is wrong', async () => {
+      // 유저의 비밀번호가 틀리는 상황을 위해, checkPassword 함수가 false 를 반환하도록 설정한다.
+      const mockedUser = {
+        id: 1,
+        checkPassword: jest.fn(() => Promise.resolve(false)),
+      };
+
+      usersRepository.findOne.mockResolvedValue(mockedUser);
+      const result = await service.login(loginArgs);
+      // checkPassword가 false라면, 아래의 반환 값과 일치해야한다.
+      expect(result).toEqual({
+        ok: false,
+        error: 'Wrong password',
+      });
+    });
+
+    // 로그인이 성공 시 토큰을 반환하는지 테스트
+    it('should return token if password correct', async () => {
+      const mockedUser = {
+        id: 1,
+        checkPassword: jest.fn(() => Promise.resolve(true)),
+      };
+      usersRepository.findOne.mockResolvedValue(mockedUser);
+
+      const result = await service.login(loginArgs);
+
+      expect(jwtService.sign).toHaveBeenCalledTimes(1);
+      expect(jwtService.sign).toHaveBeenCalledWith(expect.any(Number));
+      expect(result).toEqual({
+        ok: true,
+        token: 'signed-token-baby',
+      });
+    });
+
+    it('should fail on exception', async () => {
+      usersRepository.findOne.mockRejectedValue(new Error('Async error'));
+      const result = await service.login(loginArgs);
+      expect(result).toEqual({ ok: false, error: expect.any(Error) });
+    });
+  });
   it.todo('findById');
   it.todo('editProfile');
 });
