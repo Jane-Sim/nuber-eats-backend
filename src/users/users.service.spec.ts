@@ -14,6 +14,7 @@ const mockRepository = () => ({
   findOneOrFail: jest.fn(),
   save: jest.fn(),
   create: jest.fn(),
+  delete: jest.fn(),
 });
 
 // JwtSerivce에서 사용하는 함수를 사용하기 위해, Mock function 추가
@@ -350,6 +351,57 @@ describe('UserService', () => {
       usersRepository.findOne.mockRejectedValue(new Error());
       const result = await service.editProfile(1, { email: '12' });
       expect(result).toEqual({ ok: false, error: 'Could not update profile.' });
+    });
+  });
+
+  // 사용자의 이메일에서 검증을 받은 경우, 사용자 검증 변경 테스트
+  describe('verifyEmail', () => {
+    // 이메일 검증이 되었을 때
+    it('should verfiy email', async () => {
+      // 현재 verification에 포함된 유저의 정보
+      const mockedVerification = {
+        user: { verified: false },
+        id: 1,
+      };
+      // verification findOne의 반환 값을 설정.
+      verificationsRepository.findOne.mockResolvedValue(mockedVerification);
+
+      const result = await service.verifyEmail('');
+
+      // verification findOne 함수는 1번 호출되고, 2개의 obejct 파라미터 값을 받는다.
+      expect(verificationsRepository.findOne).toHaveBeenCalledTimes(1);
+      expect(verificationsRepository.findOne).toHaveBeenCalledWith(
+        expect.any(Object),
+        expect.any(Object),
+      );
+      // verification 데이터가 있을 경우, user.verified = true 로 변경된 유저의 값을 다시 저장한다.
+      // save는 1번 호출되고, 아래의 verfied true로 저장된걸 확인할 수 있다.
+      expect(usersRepository.save).toHaveBeenCalledTimes(1);
+      expect(usersRepository.save).toHaveBeenCalledWith({ verified: true });
+
+      // 유저의 검증 데이터가 변경되면, 해당 유저의 verification 데이터를 삭제한다.
+      expect(verificationsRepository.delete).toHaveBeenCalledTimes(1);
+      expect(verificationsRepository.delete).toHaveBeenCalledWith(
+        mockedVerification.id,
+      );
+
+      expect(result).toEqual({
+        ok: true,
+      });
+    });
+
+    // 존재하지 않는 verification 데이터일 경우
+    it('should fail on verification not found', async () => {
+      verificationsRepository.findOne.mockResolvedValue(undefined);
+      const result = await service.verifyEmail('');
+      expect(result).toEqual({ ok: false, error: 'Verification not found.' });
+    });
+
+    // findOne 함수가 Error 를 던질 때
+    it('should fail on exception', async () => {
+      verificationsRepository.findOne.mockRejectedValue(new Error());
+      const result = await service.verifyEmail('');
+      expect(result).toEqual({ ok: false, error: 'Could not verify email.' });
     });
   });
 });
