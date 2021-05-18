@@ -16,7 +16,7 @@ export class JwtService {
     return jwt.sign({ id: userId }, this.options.secretKey);
   }
   // 토큰의 유효성을 검사 후 토큰을 반환하는 메서드
-  verify(token: string): string | unknown {
+  verify(token: string) {
     // jwt.sign({검사할 토큰}, private key)
     return jwt.verify(token, this.options.secretKey);
   }
