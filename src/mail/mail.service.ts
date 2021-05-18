@@ -16,11 +16,11 @@ export class MailService {
   // got 라이브러리를 통해, http 통신을 진행한다.
   // mailgun의 curl 통신을 위해, 아래와 같이 도메인을 통해 메일을 보낸다.
   // header에 들어가는 api 값은 base64로 인코딩 후 보내야한다.
-  private async sendEmail(
+  async sendEmail(
     subject: string,
     template: string,
     emailVars: EmailVar[],
-  ) {
+  ): Promise<boolean> {
     const form = new FormData();
     // mailgun의 도메인을 통해 이메일 주소를 지정한다
     // [보내는 사람 별명Jane from Nuber Eats] [도메인 주소<mailgun@${this.options.domain}>]
@@ -39,10 +39,9 @@ export class MailService {
     emailVars.forEach((eVar) => form.append(`v:${eVar.key}`, eVar.value));
     // curl 형식으로 아래와 같이 보낸다.
     try {
-      const response = await got(
+      const response = await got.post(
         `https://api.mailgun.net/v3/${this.options.domain}/messages`,
         {
-          method: 'POST',
           headers: {
             Authorization: `Basic ${Buffer.from(
               `api:${this.options.apiKey}`,
@@ -51,8 +50,9 @@ export class MailService {
           body: form,
         },
       );
+      return true;
     } catch (error) {
-      console.log(error);
+      return false;
     }
   }
 
