@@ -266,5 +266,90 @@ describe('UserService', () => {
     });
   });
 
-  it.todo('editProfile');
+  // 사용자의 프로필 정보를 변경하는 테스트
+  describe('editProfile', () => {
+    // 이메일 변경 시,
+    it('should change email', async () => {
+      // 사용자 정보를 변경하기 전, 유저 데이터
+      const oldUser = {
+        email: 'ssiox3@gmail.com',
+        verified: true,
+      };
+      // 변경하고자 하는 유저 데이터
+      const editProfileArgs = {
+        userId: 1,
+        input: { email: 'ssiox@naver.com' },
+      };
+      // email 변경시 새로운 uuid 값을 가진 verification 데이터
+      const newVerification = {
+        code: 'code',
+      };
+      // 이메일 변경이 완료된 새로운 유저 데이터
+      const newUser = {
+        verified: false,
+        email: editProfileArgs.input.email,
+      };
+
+      // user findone의 반환 값을 현재 유저 데이터로 반환 설정.
+      usersRepository.findOne.mockResolvedValue(oldUser);
+      // user.email 데이터가 있을 시, 생성할 verification의 create, save 반환 값.
+      // create 함수는 promise를 반환하지 않는다. entity 속성만 복사해서 새 entity instance를 생성하기 때문.
+      verificationsRepository.create.mockReturnValue(newVerification);
+      verificationsRepository.save.mockResolvedValue(newVerification);
+
+      await service.editProfile(editProfileArgs.userId, editProfileArgs.input);
+
+      expect(usersRepository.findOne).toHaveBeenCalledTimes(1);
+      // findOne은 찾고자 하는 user id와 함께 호출된다.
+      expect(usersRepository.findOne).toHaveBeenCalledWith(
+        editProfileArgs.userId,
+      );
+      // verification create는, 새 유저 정보와 호출된다.
+      expect(verificationsRepository.create).toHaveBeenCalledWith({
+        user: newUser,
+      });
+      // verification save는, code 속성 값이 담긴 verification entity와 호출된다.
+      expect(verificationsRepository.save).toHaveBeenCalledWith(
+        newVerification,
+      );
+
+      // emailService의 sendVerificationEmail 함수는, 사용자에게 검증 이메일을 보내기 위해,
+      // email값이 변경된 유저의 이메일과 새로운 code를 함께 호출한다.
+      expect(emailService.sendVerificationEmail).toHaveBeenCalledWith(
+        newUser.email,
+        newVerification.code,
+      );
+    });
+
+    // 비밀번호 변경 시,
+    it('should change password', async () => {
+      // 변경하고자 하는 유저 데이터
+      const editProfileArgs = {
+        userId: 1,
+        input: { password: 'new.password' },
+      };
+      // user findOne은 현재 유저의 정보를 반환한다.
+      usersRepository.findOne.mockResolvedValue({ password: 'old' });
+
+      const result = await service.editProfile(
+        editProfileArgs.userId,
+        editProfileArgs.input,
+      );
+
+      // user save함수는 1번 호출되고, 변경된 password 값과 함께 호출된다.
+      expect(usersRepository.save).toHaveBeenCalledTimes(1);
+      expect(usersRepository.save).toHaveBeenCalledWith(editProfileArgs.input);
+      // 결과 값이 아래와 같으면 완료.
+      expect(result).toEqual({
+        ok: true,
+      });
+    });
+
+    //
+    it('should fail on exception', async () => {
+      usersRepository.findOne.mockRejectedValue(new Error());
+      const result = await service.editProfile(1, { email: '12' });
+      expect(result).toEqual({ ok: false, error: 'Could not update profile.' });
+    });
+  });
 });
