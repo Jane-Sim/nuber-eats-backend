@@ -322,6 +322,39 @@ describe('UserService', () => {
       );
     });
 
+    // 중복되는 이메일로 변경 시,
+    it('should fail if use exists email.', async () => {
+      // 사용자 정보를 변경하기 전, 유저 데이터
+      const oldUser = {
+        email: 'ssiox3@gmail.com',
+        verified: true,
+      };
+      // 중복된 이메일로 변경하고자 하는 유저 데이터.
+      const editProfileArgs = {
+        userId: 1,
+        input: { email: 'ssiox3@gmail.com' },
+      };
+
+      // user findOneOrFail 반환 값을 현재 유저 데이터로 반환 설정.
+      usersRepository.findOneOrFail.mockResolvedValue(oldUser);
+
+      const result = await service.editProfile(
+        editProfileArgs.userId,
+        editProfileArgs.input,
+      );
+
+      expect(usersRepository.findOneOrFail).toHaveBeenCalledTimes(1);
+      // findOneOrFail 찾고자 하는 user email과 함께 호출된다.
+      expect(usersRepository.findOneOrFail).toHaveBeenCalledWith(
+        editProfileArgs.input,
+      );
+      // 중복된 이메일일 경우, 아래와 같이 반환한다.
+      expect(result).toEqual({
+        ok: false,
+        error: 'There is a user with that email already.',
+      });
+    });
+
     // 비밀번호 변경 시,
     it('should change password', async () => {
       // 변경하고자 하는 유저 데이터

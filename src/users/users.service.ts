@@ -117,6 +117,11 @@ export class UsersService {
     { email, password }: EditProfileInput,
   ): Promise<EditProfileOutput> {
     try {
+      // 만약 사용자가 사용하고 있는 이메일로 변경하려는 경우, 이메일을 변경하지 못하게 에러를 반환한다.
+      if (await this.users.findOneOrFail({ email })) {
+        return { ok: false, error: 'There is a user with that email already.' };
+      }
+
       const user = await this.users.findOne(userId);
       if (email) {
         user.email = email;
