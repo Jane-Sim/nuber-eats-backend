@@ -291,6 +291,56 @@ describe('UserModule (e2e)', () => {
     });
   });
 
+  // 유저의 이메일, 패스워드 정보를 변경하는 테스트
+  describe('editProfile', () => {
+    const NEW_EMAIL = 'ssiox@naver.com';
+
+    // 이메일만 변경
+    it('should change email', () => {
+      return request(app.getHttpServer())
+        .post(GRAPHQL_ENDPOINT)
+        .set('X-JWT', jwtToken)
+        .send({
+          query: `
+            mutation{
+              editProfile(input:{
+                email: "${NEW_EMAIL}"
+             }) {
+               ok
+               error
+             } 
+           }
+          `,
+        })
+        .expect(200)
+        .expect((res) => {
+          const { ok, error } = res.body.data.editProfile;
+          expect(ok).toBe(true);
+          expect(error).toBe(null);
+        });
+    });
+
+    // 변경된 이메일로 데이터가 잘 불러오지는지 확인
+    it('should have new email', () => {
+      return request(app.getHttpServer())
+        .post(GRAPHQL_ENDPOINT)
+        .set('X-JWT', jwtToken)
+        .send({
+          query: `
+        {
+          me {
+            email
+          }
+        }
+        `,
+        })
+        .expect(200)
+        .expect((res) => {
+          const { email } = res.body.data.me;
+          expect(email).toBe(NEW_EMAIL);
+        });
+    });
+  });
+
   it.todo('verifyEmail');
-  it.todo('editProfile');
 });
