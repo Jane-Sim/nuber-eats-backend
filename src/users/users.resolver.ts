@@ -22,11 +22,6 @@ import { UsersService } from './users.service';
 export class UsersResolver {
   constructor(private readonly usersService: UsersService) {}
 
-  @Query((returns) => Boolean)
-  hi(): boolean {
-    return true;
-  }
-
   // 사용자의 계정 유무를 체크하고, 계정 생성 유무를 클라이언트에 전달한다.
   // CreateAccountOutput에 계정 생성 유무, error가 났다면 어떤 이유인지 알려준다.
   @Mutation((returns) => CreateAccountOutput)
