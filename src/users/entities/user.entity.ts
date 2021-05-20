@@ -8,7 +8,7 @@ import {
   registerEnumType,
 } from '@nestjs/graphql';
 import * as bcrypt from 'bcrypt';
-import { IsEmail, IsEnum } from 'class-validator';
+import { IsBoolean, IsEmail, IsEnum, IsString } from 'class-validator';
 import { CoreEntity } from 'src/common/entities/core.entity';
 import { BeforeInsert, BeforeUpdate, Column, Entity } from 'typeorm';
 
@@ -37,6 +37,7 @@ export class User extends CoreEntity {
   // find/findOne으로 user를 찾을 시, password 속성 값을 제외하고 User Entity를 전달한다.
   @Column({ select: false })
   @Field((type) => String)
+  @IsString()
   password: string;
 
   @Field((type) => UserRole)
@@ -46,6 +47,7 @@ export class User extends CoreEntity {
 
   @Column({ default: false })
   @Field((type) => Boolean)
+  @IsBoolean()
   verified: boolean;
 
   // typeorm에서 제공하는 Entity Listeners and Subscribers중 하나인

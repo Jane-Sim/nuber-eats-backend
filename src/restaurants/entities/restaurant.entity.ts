@@ -10,42 +10,31 @@
  * 해당 Restaurant entity를 연결한 DB에 테이블을 생성.
  */
 import { Field, ObjectType } from '@nestjs/graphql';
-import { IsBoolean, IsOptional, IsString, Length } from 'class-validator';
-import { Column, Entity, PrimaryGeneratedColumn } from 'typeorm';
+import { IsString, Length } from 'class-validator';
+import { CoreEntity } from 'src/common/entities/core.entity';
+import { Column, Entity, ManyToOne } from 'typeorm';
+import { Category } from './category.entity';
 
 @ObjectType() // nest
 @Entity() // typeORM
-export class Restaurant {
-  @PrimaryGeneratedColumn() // typeORM
-  @Field((type) => Number) // nest(gql)
-  id: number; // nest(typescript)
-
+export class Restaurant extends CoreEntity {
   @Field((type) => String) // nest(gql)
   @Column() // typeORM
   @IsString() // validation
   @Length(5) // validation
   name: string; // nest(typescript)
 
-  // isVegan의 graphql 기본 값은 true, db칼럼에서도 dafault값은 true.
-  // IsOptional을 통해 속성 값이 옵션이며, 값이 있다면 boolean으로 설정하라
-  @Field((type) => Boolean, { defaultValue: true }) // nest(gql)
-  @Column({ default: true }) // typeORM
-  @IsOptional() // validation
-  @IsBoolean() // validation
-  isVegan: boolean; // nest(typescript)
+  @Field((type) => String)
+  @Column()
+  @IsString()
+  coverImg: string;
 
   @Field((type) => String, { defaultValue: '강남' })
   @Column()
   @IsString()
   address: string;
 
-  @Field((type) => String)
-  @Column()
-  @IsString()
-  ownersName: string;
-
-  @Field((type) => String)
-  @Column()
-  @IsString()
-  categoryName: string;
+  @Field((type) => Category)
+  @ManyToOne((type) => Category, (category) => category.restaurants)
+  category: Category;
 }
