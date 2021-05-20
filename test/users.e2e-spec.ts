@@ -6,7 +6,9 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { INestApplication } from '@nestjs/common';
 import * as request from 'supertest';
 import { AppModule } from '../src/app.module';
-import { getConnection } from 'typeorm';
+import { getConnection, Repository } from 'typeorm';
+import { getRepositoryToken } from '@nestjs/typeorm';
+import { User } from 'src/users/entities/user.entity';
 
 // got 라이브러리의 request를 mock 함수로 생성한다.
 jest.mock('got', () => {
@@ -25,6 +27,7 @@ const testUser = {
 
 describe('UserModule (e2e)', () => {
   let app: INestApplication;
+  let usersRepository: Repository<User>;
   // 로그인 시, 할당되어 특정 테스트에 사용될 token 변수.
   let jwtToken: string;
 
@@ -35,6 +38,7 @@ describe('UserModule (e2e)', () => {
     }).compile();
 
     app = module.createNestApplication();
+    usersRepository = module.get<Repository<User>>(getRepositoryToken(User));
     await app.init();
   });
 
@@ -168,7 +172,77 @@ describe('UserModule (e2e)', () => {
     });
   });
 
-  it.todo('userProfile');
+  // 유저 데이터를 가져오는 테스트
+  describe('userProfile', () => {
+    let userId: number;
+    // DB에서 1개만 생성된 유저의 id 값을 userId 변수에 할당한다.
+    beforeAll(async () => {
+      const [user] = await usersRepository.find();
+      userId = user.id;
+    });
+
+    // 유저를 잘 가져왔을 때
+    it("should see a user's profile", () => {
+      return (
+        request(app.getHttpServer())
+          .post(GRAPHQL_ENDPOINT)
+          // 토큰값을 설정한다.
+          .set('X-JWT', jwtToken)
+          .send({
+            query: `
+        {
+          userProfile(userId:${userId}) {
+           ok
+           error
+           user{
+             id
+           }
+         }
+       } 
+      `,
+          })
+          .expect(200)
+          .expect((res) => {
+            const {
+              ok,
+              error,
+              user: { id },
+            } = res.body.data.userProfile;
+            expect(ok).toBe(true);
+            expect(error).toBe(null);
+            expect(id).toBe(userId);
+          })
+      );
+    });
+
+    // 유저를 못 가져왔을 때
+    it('should not find a profile', () => {
+      return request(app.getHttpServer())
+        .post(GRAPHQL_ENDPOINT)
+        .set('X-JWT', jwtToken)
+        .send({
+          query: `
+        {
+          userProfile(userId:777) {
+           ok
+           error
+           user{
+             id
+           }
+         }
+       } 
+      `,
+        })
+        .expect(200)
+        .expect((res) => {
+          const { ok, error, user } = res.body.data.userProfile;
+          expect(ok).toBe(false);
+          expect(error).toBe('User Not Found');
+          expect(user).toBe(null);
+        });
+    });
+  });
+
   it.todo('verifyEmail');
   it.todo('me');
   it.todo('editProfile');
