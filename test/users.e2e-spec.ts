@@ -9,6 +9,8 @@ import { AppModule } from '../src/app.module';
 import { getConnection, Repository } from 'typeorm';
 import { getRepositoryToken } from '@nestjs/typeorm';
 import { User } from 'src/users/entities/user.entity';
+import { Verification } from 'src/users/entities/verification.entity';
+import { send } from 'process';
 
 // got 라이브러리의 request를 mock 함수로 생성한다.
 jest.mock('got', () => {
@@ -28,6 +30,7 @@ const testUser = {
 describe('UserModule (e2e)', () => {
   let app: INestApplication;
   let usersRepository: Repository<User>;
+  let verificationRepository: Repository<Verification>;
   // 로그인 시, 할당되어 특정 테스트에 사용될 token 변수.
   let jwtToken: string;
 
@@ -39,6 +42,9 @@ describe('UserModule (e2e)', () => {
 
     app = module.createNestApplication();
     usersRepository = module.get<Repository<User>>(getRepositoryToken(User));
+    verificationRepository = module.get<Repository<Verification>>(
+      getRepositoryToken(Verification),
+    );
     await app.init();
   });
 
@@ -342,5 +348,60 @@ describe('UserModule (e2e)', () => {
     });
   });
 
-  it.todo('verifyEmail');
+  // 변경한 이메일로 검증하는 테스트
+  describe('verifyEmail', () => {
+    // 사용자의 검증코드를 할당할 변수
+    let verificationCode: string;
+
+    // 현재 사용자의 검증 코드를 불러오자.
+    beforeAll(async () => {
+      const [verification] = await verificationRepository.find();
+      verificationCode = verification.code;
+    });
+    // 해당 유저의 검증 코드를 통해 검증
+    it('should verify email', () => {
+      return request(app.getHttpServer())
+        .post(GRAPHQL_ENDPOINT)
+        .send({
+          query: `
+        mutation {
+          verifyEmail(input: {
+            code:"${verificationCode}"
+          }){
+            ok
+            error}
+        }
+        `,
+        })
+        .expect(200)
+        .expect((res) => {
+          const { ok, error } = res.body.data.verifyEmail;
+          expect(ok).toBe(true);
+          expect(error).toBe(null);
+        });
+    });
+
+    // 해당 유저의 잘못된 검증 코드를 통해 검증 실패
+    it('should fail on wrong verification code not found', () => {
+      return request(app.getHttpServer())
+        .post(GRAPHQL_ENDPOINT)
+        .send({
+          query: `
+        mutation {
+          verifyEmail(input: {
+            code:"0000"
+          }){
+            ok
+            error}
+        }
+        `,
+        })
+        .expect(200)
+        .expect((res) => {
+          const { ok, error } = res.body.data.verifyEmail;
+          expect(ok).toBe(false);
+          expect(error).toBe('Verification not found.');
+        });
+    });
+  });
 });
