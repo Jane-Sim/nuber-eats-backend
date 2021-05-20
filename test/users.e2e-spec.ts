@@ -34,6 +34,14 @@ describe('UserModule (e2e)', () => {
   // 로그인 시, 할당되어 특정 테스트에 사용될 token 변수.
   let jwtToken: string;
 
+  // 공통으로 사용되는 request base 코드
+  const baseTest = () => request(app.getHttpServer()).post(GRAPHQL_ENDPOINT);
+  // 로그인하지 않아도 되는 public request
+  const publicTest = (query: string) => baseTest().send({ query });
+  // 로그인이 필요한 private request
+  const privateTest = (query: string) =>
+    baseTest().set('X-JWT', jwtToken).send({ query });
+
   // 테스트 전, app 모듈을 가져와 실행한다.
   beforeAll(async () => {
     const module: TestingModule = await Test.createTestingModule({
@@ -60,10 +68,7 @@ describe('UserModule (e2e)', () => {
     it('should create account', () => {
       // graphql 경로에 쿼리문을 날린다.
       // expect를 통해 graphql의 return 값을 확인 가능하다.
-      return request(app.getHttpServer())
-        .post(GRAPHQL_ENDPOINT)
-        .send({
-          query: `
+      return publicTest(`
         mutation {
           createAccount(input: {
             email:"${testUser.email}",
@@ -74,8 +79,7 @@ describe('UserModule (e2e)', () => {
             error,
           }
         }
-        `,
-        })
+        `)
         .expect(200)
         .expect((res) => {
           const { ok, error } = res.body.data.createAccount;
@@ -86,10 +90,7 @@ describe('UserModule (e2e)', () => {
 
     // 위에서 생성한 유저 정보로 다시 유저를 만들 때, 유저중복 에러테스트
     it('should fail if account already exists', () => {
-      return request(app.getHttpServer())
-        .post(GRAPHQL_ENDPOINT)
-        .send({
-          query: `
+      return publicTest(`
       mutation {
         createAccount(input: {
           email:"${testUser.email}",
@@ -100,8 +101,7 @@ describe('UserModule (e2e)', () => {
           error,
         }
       }
-      `,
-        })
+      `)
         .expect(200)
         .expect((res) => {
           const { ok, error } = res.body.data.createAccount;
@@ -115,10 +115,7 @@ describe('UserModule (e2e)', () => {
   describe('login', () => {
     // 로그인 성공 테스트
     it('should login with correct credentials', () => {
-      return request(app.getHttpServer())
-        .post(GRAPHQL_ENDPOINT)
-        .send({
-          query: `
+      return publicTest(`
         mutation {
           login(input: {
             email:"${testUser.email}",
@@ -129,8 +126,7 @@ describe('UserModule (e2e)', () => {
             token
           }
         }
-        `,
-        })
+        `)
         .expect(200)
         .expect((res) => {
           const {
@@ -148,10 +144,7 @@ describe('UserModule (e2e)', () => {
 
     // 로그인 실패 테스트
     it('should not be able to login with wrong credentials', () => {
-      return request(app.getHttpServer())
-        .post(GRAPHQL_ENDPOINT)
-        .send({
-          query: `
+      return publicTest(`
       mutation {
         login(input: {
           email:"${testUser.email}",
@@ -162,8 +155,7 @@ describe('UserModule (e2e)', () => {
           token
         }
       }
-      `,
-        })
+      `)
         .expect(200)
         .expect((res) => {
           const {
@@ -189,13 +181,7 @@ describe('UserModule (e2e)', () => {
 
     // 유저를 잘 가져왔을 때
     it("should see a user's profile", () => {
-      return (
-        request(app.getHttpServer())
-          .post(GRAPHQL_ENDPOINT)
-          // 토큰값을 설정한다.
-          .set('X-JWT', jwtToken)
-          .send({
-            query: `
+      return privateTest(`
         {
           userProfile(userId:${userId}) {
            ok
@@ -205,29 +191,23 @@ describe('UserModule (e2e)', () => {
            }
          }
        } 
-      `,
-          })
-          .expect(200)
-          .expect((res) => {
-            const {
-              ok,
-              error,
-              user: { id },
-            } = res.body.data.userProfile;
-            expect(ok).toBe(true);
-            expect(error).toBe(null);
-            expect(id).toBe(userId);
-          })
-      );
+      `)
+        .expect(200)
+        .expect((res) => {
+          const {
+            ok,
+            error,
+            user: { id },
+          } = res.body.data.userProfile;
+          expect(ok).toBe(true);
+          expect(error).toBe(null);
+          expect(id).toBe(userId);
+        });
     });
 
     // 유저를 못 가져왔을 때
     it('should not find a profile', () => {
-      return request(app.getHttpServer())
-        .post(GRAPHQL_ENDPOINT)
-        .set('X-JWT', jwtToken)
-        .send({
-          query: `
+      return privateTest(`
         {
           userProfile(userId:777) {
            ok
@@ -237,8 +217,7 @@ describe('UserModule (e2e)', () => {
            }
          }
        } 
-      `,
-        })
+      `)
         .expect(200)
         .expect((res) => {
           const { ok, error, user } = res.body.data.userProfile;
@@ -253,41 +232,29 @@ describe('UserModule (e2e)', () => {
   describe('me', () => {
     // 자신의 데이터를 찾아왔을 때
     it('should find my profile', () => {
-      return (
-        request(app.getHttpServer())
-          .post(GRAPHQL_ENDPOINT)
-          // 토큰값을 설정한다.
-          .set('X-JWT', jwtToken)
-          .send({
-            query: `
+      return privateTest(`
             {
               me {
                 email
               }
             }
-      `,
-          })
-          .expect(200)
-          .expect((res) => {
-            const { email } = res.body.data.me;
-            expect(email).toBe(testUser.email);
-          })
-      );
+      `)
+        .expect(200)
+        .expect((res) => {
+          const { email } = res.body.data.me;
+          expect(email).toBe(testUser.email);
+        });
     });
 
     // 토큰 값이 없어서 데이터 찾기 실패시
     it('should not allow logged out user', () => {
-      return request(app.getHttpServer())
-        .post(GRAPHQL_ENDPOINT)
-        .send({
-          query: `
+      return publicTest(`
             {
               me {
                 email
               }
             }
-      `,
-        })
+      `)
         .expect(200)
         .expect((res) => {
           const { errors } = res.body;
@@ -303,11 +270,7 @@ describe('UserModule (e2e)', () => {
 
     // 이메일만 변경
     it('should change email', () => {
-      return request(app.getHttpServer())
-        .post(GRAPHQL_ENDPOINT)
-        .set('X-JWT', jwtToken)
-        .send({
-          query: `
+      return privateTest(`
             mutation{
               editProfile(input:{
                 email: "${NEW_EMAIL}"
@@ -316,8 +279,7 @@ describe('UserModule (e2e)', () => {
                error
              } 
            }
-          `,
-        })
+          `)
         .expect(200)
         .expect((res) => {
           const { ok, error } = res.body.data.editProfile;
@@ -328,18 +290,13 @@ describe('UserModule (e2e)', () => {
 
     // 변경된 이메일로 데이터가 잘 불러오지는지 확인
     it('should have new email', () => {
-      return request(app.getHttpServer())
-        .post(GRAPHQL_ENDPOINT)
-        .set('X-JWT', jwtToken)
-        .send({
-          query: `
+      return privateTest(`
         {
           me {
             email
           }
         }
-        `,
-        })
+        `)
         .expect(200)
         .expect((res) => {
           const { email } = res.body.data.me;
@@ -360,10 +317,7 @@ describe('UserModule (e2e)', () => {
     });
     // 해당 유저의 검증 코드를 통해 검증
     it('should verify email', () => {
-      return request(app.getHttpServer())
-        .post(GRAPHQL_ENDPOINT)
-        .send({
-          query: `
+      return privateTest(`
         mutation {
           verifyEmail(input: {
             code:"${verificationCode}"
@@ -371,8 +325,7 @@ describe('UserModule (e2e)', () => {
             ok
             error}
         }
-        `,
-        })
+        `)
         .expect(200)
         .expect((res) => {
           const { ok, error } = res.body.data.verifyEmail;
@@ -383,10 +336,7 @@ describe('UserModule (e2e)', () => {
 
     // 해당 유저의 잘못된 검증 코드를 통해 검증 실패
     it('should fail on wrong verification code not found', () => {
-      return request(app.getHttpServer())
-        .post(GRAPHQL_ENDPOINT)
-        .send({
-          query: `
+      return privateTest(`
         mutation {
           verifyEmail(input: {
             code:"0000"
@@ -394,8 +344,7 @@ describe('UserModule (e2e)', () => {
             ok
             error}
         }
-        `,
-        })
+        `)
         .expect(200)
         .expect((res) => {
           const { ok, error } = res.body.data.verifyEmail;
