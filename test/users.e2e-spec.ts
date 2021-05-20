@@ -243,7 +243,54 @@ describe('UserModule (e2e)', () => {
     });
   });
 
+  // 현재 로그인된 유저 자신의 데이터를 가져오는 테스트
+  describe('me', () => {
+    // 자신의 데이터를 찾아왔을 때
+    it('should find my profile', () => {
+      return (
+        request(app.getHttpServer())
+          .post(GRAPHQL_ENDPOINT)
+          // 토큰값을 설정한다.
+          .set('X-JWT', jwtToken)
+          .send({
+            query: `
+            {
+              me {
+                email
+              }
+            }
+      `,
+          })
+          .expect(200)
+          .expect((res) => {
+            const { email } = res.body.data.me;
+            expect(email).toBe(testUser.email);
+          })
+      );
+    });
+
+    // 토큰 값이 없어서 데이터 찾기 실패시
+    it('should not allow logged out user', () => {
+      return request(app.getHttpServer())
+        .post(GRAPHQL_ENDPOINT)
+        .send({
+          query: `
+            {
+              me {
+                email
+              }
+            }
+      `,
+        })
+        .expect(200)
+        .expect((res) => {
+          const { errors } = res.body;
+          const [error] = errors;
+          expect(error.message).toBe('Forbidden resource');
+        });
+    });
+  });
+
   it.todo('verifyEmail');
-  it.todo('me');
   it.todo('editProfile');
 });
