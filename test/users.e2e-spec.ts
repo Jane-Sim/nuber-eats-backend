@@ -17,8 +17,16 @@ jest.mock('got', () => {
 
 const GRAPHQL_ENDPOINT = '/graphql';
 
+// 테스트에 사용되는 test 유저 데이터.
+const testUser = {
+  email: 'ssiox3@gmail.com',
+  password: '12345',
+};
+
 describe('UserModule (e2e)', () => {
   let app: INestApplication;
+  // 로그인 시, 할당되어 특정 테스트에 사용될 token 변수.
+  let jwtToken: string;
 
   // 테스트 전, app 모듈을 가져와 실행한다.
   beforeAll(async () => {
@@ -38,8 +46,6 @@ describe('UserModule (e2e)', () => {
 
   // 새 유저를 만드는 테스트
   describe('createAccount', () => {
-    const EMAIL = 'ssiox3@gmail.com';
-
     // 유저 생성완료 테스트
     it('should create account', () => {
       // graphql 경로에 쿼리문을 날린다.
@@ -50,8 +56,8 @@ describe('UserModule (e2e)', () => {
           query: `
         mutation {
           createAccount(input: {
-            email:"${EMAIL}",
-            password:"12345",
+            email:"${testUser.email}",
+            password:"${testUser.password}",
             role:Client
           }) {
             ok,
@@ -62,8 +68,9 @@ describe('UserModule (e2e)', () => {
         })
         .expect(200)
         .expect((res) => {
-          expect(res.body.data.createAccount.ok).toBe(true);
-          expect(res.body.data.createAccount.error).toBe(null);
+          const { ok, error } = res.body.data.createAccount;
+          expect(ok).toBe(true);
+          expect(error).toBe(null);
         });
     });
 
@@ -75,8 +82,8 @@ describe('UserModule (e2e)', () => {
           query: `
       mutation {
         createAccount(input: {
-          email:"${EMAIL}",
-          password:"12345",
+          email:"${testUser.email}",
+          password:"${testUser.password}",
           role:Client
         }) {
           ok,
@@ -87,14 +94,81 @@ describe('UserModule (e2e)', () => {
         })
         .expect(200)
         .expect((res) => {
-          expect(res.body.data.createAccount.ok).toBe(false);
-          expect(res.body.data.createAccount.error).toEqual(expect.any(String));
+          const { ok, error } = res.body.data.createAccount;
+          expect(ok).toBe(false);
+          expect(error).toEqual(expect.any(String));
+        });
+    });
+  });
+
+  // 로그인 테스트
+  describe('login', () => {
+    // 로그인 성공 테스트
+    it('should login with correct credentials', () => {
+      return request(app.getHttpServer())
+        .post(GRAPHQL_ENDPOINT)
+        .send({
+          query: `
+        mutation {
+          login(input: {
+            email:"${testUser.email}",
+            password:"${testUser.password}",
+          }) {
+            ok,
+            error,
+            token
+          }
+        }
+        `,
+        })
+        .expect(200)
+        .expect((res) => {
+          const {
+            body: {
+              data: { login },
+            },
+          } = res;
+          expect(login.ok).toBe(true);
+          expect(login.error).toBe(null);
+          expect(login.token).toEqual(expect.any(String));
+          // 로그인시, 받아온 token을 jwtToken변수에 할당하여 다른 테스트에 사용한다.
+          jwtToken = login.token;
+        });
+    });
+
+    // 로그인 실패 테스트
+    it('should not be able to login with wrong credentials', () => {
+      return request(app.getHttpServer())
+        .post(GRAPHQL_ENDPOINT)
+        .send({
+          query: `
+      mutation {
+        login(input: {
+          email:"${testUser.email}",
+          password:"xxx",
+        }) {
+          ok,
+          error,
+          token
+        }
+      }
+      `,
+        })
+        .expect(200)
+        .expect((res) => {
+          const {
+            body: {
+              data: { login },
+            },
+          } = res;
+          expect(login.ok).toBe(false);
+          expect(login.error).toBe('Wrong password');
+          expect(login.token).toBe(null);
         });
     });
   });
 
   it.todo('userProfile');
-  it.todo('login');
   it.todo('verifyEmail');
   it.todo('me');
   it.todo('editProfile');
