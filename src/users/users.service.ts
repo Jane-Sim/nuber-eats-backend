@@ -118,7 +118,8 @@ export class UsersService {
   ): Promise<EditProfileOutput> {
     try {
       // 만약 사용자가 사용하고 있는 이메일로 변경하려는 경우, 이메일을 변경하지 못하게 에러를 반환한다.
-      if (await this.users.findOneOrFail({ email })) {
+      const [_, userLength] = await this.users.findAndCount({ email });
+      if (userLength > 0) {
         return { ok: false, error: 'There is a user with that email already.' };
       }
 
@@ -127,6 +128,8 @@ export class UsersService {
         user.email = email;
         // 사용자가 이메일을 변경하면 다시 검증할 수 있도록, 해당 유저 정보로 verification을 업데이트한다.
         user.verified = false;
+        // 1 유저당 1 verification을 가지므로, 기존의 verification은 삭제해준다.
+        await this.verifications.delete({ user: { id: user.id } });
         const verification = await this.verifications.save(
           this.verifications.create({ user }),
         );

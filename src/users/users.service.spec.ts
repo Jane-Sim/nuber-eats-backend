@@ -12,6 +12,7 @@ import { UsersService } from './users.service';
 const mockRepository = () => ({
   findOne: jest.fn(),
   findOneOrFail: jest.fn(),
+  findAndCount: jest.fn(),
   save: jest.fn(),
   create: jest.fn(),
   delete: jest.fn(),
@@ -291,6 +292,8 @@ describe('UserService', () => {
         email: editProfileArgs.input.email,
       };
 
+      // user findAndCount의 반환 값을 비워서 설정.
+      usersRepository.findAndCount.mockResolvedValue([[], 0]);
       // user findone의 반환 값을 현재 유저 데이터로 반환 설정.
       usersRepository.findOne.mockResolvedValue(oldUser);
       // user.email 데이터가 있을 시, 생성할 verification의 create, save 반환 값.
@@ -336,16 +339,16 @@ describe('UserService', () => {
       };
 
       // user findOneOrFail 반환 값을 현재 유저 데이터로 반환 설정.
-      usersRepository.findOneOrFail.mockResolvedValue(oldUser);
+      usersRepository.findAndCount.mockResolvedValue([[oldUser], 1]);
 
       const result = await service.editProfile(
         editProfileArgs.userId,
         editProfileArgs.input,
       );
 
-      expect(usersRepository.findOneOrFail).toHaveBeenCalledTimes(1);
+      expect(usersRepository.findAndCount).toHaveBeenCalledTimes(1);
       // findOneOrFail 찾고자 하는 user email과 함께 호출된다.
-      expect(usersRepository.findOneOrFail).toHaveBeenCalledWith(
+      expect(usersRepository.findAndCount).toHaveBeenCalledWith(
         editProfileArgs.input,
       );
       // 중복된 이메일일 경우, 아래와 같이 반환한다.
@@ -362,6 +365,7 @@ describe('UserService', () => {
         userId: 1,
         input: { password: 'new.password' },
       };
+      usersRepository.findAndCount.mockResolvedValue([[], 0]);
       // user findOne은 현재 유저의 정보를 반환한다.
       usersRepository.findOne.mockResolvedValue({ password: 'old' });
 
