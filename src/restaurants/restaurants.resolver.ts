@@ -5,6 +5,7 @@
 
 import { Args, Mutation, Resolver } from '@nestjs/graphql';
 import { AuthUser } from 'src/auth/auth-user.decorator';
+import { Roles } from 'src/auth/role.decorator';
 import { User } from 'src/users/entities/user.entity';
 import {
   CreateRestaurantInput,
@@ -18,11 +19,13 @@ import { RestaurantService } from './restaurants.service';
 export class RestaurantResolver {
   constructor(private readonly restaurantService: RestaurantService) {}
 
-  // 데이터를 추가 Mutation 데코레이터.
+  // 레스토랑을 생성하는 Mutation. Owner role을 가진 유저만 실행가능.
+  // @SetMetadata를 통해, Resolver를 실행시킬 수 있는 권한을 부여할 수 있다.
   // InputType데코레이터를 사용하는 CreateRestaurantInput을 통해, 클라이언트에서 인자 값을 쉽게 받아옴.
   // createRestaurant 서비스의 비동기 함수를 받기 위해 async, await 사용.
   // Restaurant entity를 생성할 때, 로그인 한 유저의 정보를 owner로 지정.
   @Mutation((returns) => CreateRestaurantOutput)
+  @Roles('Owner')
   async createRestaurant(
     @AuthUser() authUser: User,
     @Args('input') createRestaurantInput: CreateRestaurantInput,

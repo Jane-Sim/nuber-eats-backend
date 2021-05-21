@@ -17,6 +17,7 @@ import { MailModule } from './mail/mail.module';
 import { Restaurant } from './restaurants/entities/restaurant.entity';
 import { Category } from './restaurants/entities/category.entity';
 import { RestaurantsModule } from './restaurants/restaurants.module';
+import { AuthModule } from './auth/auth.module';
 
 @Module({
   imports: [
@@ -70,6 +71,7 @@ import { RestaurantsModule } from './restaurants/restaurants.module';
     }),
     UsersModule,
     RestaurantsModule,
+    AuthModule,
     // mailgun 서비스를 이용할 때 필요한 정보를 forRoot에 담아서 보내기.
     MailModule.forRoot({
       apiKey: process.env.MAILGUN_API_KEY,

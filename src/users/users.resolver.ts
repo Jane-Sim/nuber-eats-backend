@@ -3,10 +3,9 @@
  * user 엔티티와 서비스를 주입해서 사용한다.
  */
 
-import { UseGuards } from '@nestjs/common';
 import { Args, Mutation, Query, Resolver } from '@nestjs/graphql';
 import { AuthUser } from 'src/auth/auth-user.decorator';
-import { AuthGuard } from 'src/auth/auth.guard';
+import { Roles } from 'src/auth/role.decorator';
 import {
   CreateAccountInput,
   CreateAccountOutput,
@@ -40,16 +39,16 @@ export class UsersResolver {
 
   // 현재 유저 정보를 가져오는 query.
   // 해당 query가 실행될 때, middleware에서 토큰 값으로 user 데이터를 request에 넣고,
-  // Guard 에서 request context에 접근 후, 해당 유저 데이터가 존재할 때 me함수를 실행시킨다.
+  // Guard 에서 request context에 접근 후 해당 유저 데이터가 존재하며, SetMetadata에 지정된 Role 역할의 값이 일치할 때 me함수를 실행시킨다.
   // guard 에서 증명이 되면, @AuthUser 데코레이터를 통해 user 정보를 request context에서 꺼내온다.
   @Query((returns) => User)
-  @UseGuards(AuthGuard)
+  @Roles('Any')
   me(@AuthUser() authUser: User): User {
     return authUser;
   }
 
   // 특정 유저의 프로필을 가져오는 함수.
-  @UseGuards(AuthGuard)
+  @Roles('Any')
   @Query((returns) => UserProfileOutput)
   async userProfile(
     @Args() userProfileInput: UserProfileInput,
@@ -60,7 +59,7 @@ export class UsersResolver {
   // 유저 프로필 정보를 수정하는 Mutation.
   // 토큰 값으로 유저 정보를 가져온 뒤, email, password 등 유저가 변경하려는 값이 있으면,
   // 변경하려는 값으로 user entity를 업데이트한다.
-  @UseGuards(AuthGuard)
+  @Roles('Any')
   @Mutation((returns) => EditProfileOutput)
   async editProfile(
     @AuthUser() authUser: User,
