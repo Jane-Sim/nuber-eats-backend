@@ -9,12 +9,17 @@
  * 설정한 Entity, Column 데코레이터를 이용해
  * 해당 Restaurant entity를 연결한 DB에 테이블을 생성.
  */
-import { Field, ObjectType } from '@nestjs/graphql';
+import { Field, InputType, ObjectType } from '@nestjs/graphql';
 import { IsString, Length } from 'class-validator';
 import { CoreEntity } from 'src/common/entities/core.entity';
+import { User } from 'src/users/entities/user.entity';
 import { Column, Entity, ManyToOne } from 'typeorm';
 import { Category } from './category.entity';
 
+// InputType과 ObjectType의 name이 겹치지 않도록, InputType에 name을 지정하여 사용한다.
+// schema에는 DB에서 인식할 수 있는 Restaurant type과
+// graphql, DB에서 인식 가능한 RestaurantInputType이 생성된다.
+@InputType('RestaurantInputType', { isAbstract: true })
 @ObjectType() // nest
 @Entity() // typeORM
 export class Restaurant extends CoreEntity {
@@ -34,7 +39,19 @@ export class Restaurant extends CoreEntity {
   @IsString()
   address: string;
 
-  @Field((type) => Category)
-  @ManyToOne((type) => Category, (category) => category.restaurants)
+  // 1개의 카테고리는 다수의 레스토랑을 지니고 있다.
+  // 특정 카테고리가 삭제되면, 해당 카테고리를 참고하는 레스토랑들이 삭제되면 안되기에
+  // 레스토랑의 카테고리 속성 값은 nullable 하며, 카테고리가 삭제되면 NULL로 SET 쿼리를 사용해서 속성을 null로 만든다.
+  @Field((type) => Category, { nullable: true })
+  @ManyToOne((type) => Category, (category) => category.restaurants, {
+    nullable: true,
+    onDelete: 'SET NULL',
+  })
   category: Category;
+
+  // 1명의 오너는 여러 개의 레스토랑을 지니고 있다.
+  // 레스토랑은 오너가 존재해야 하며, 오너가 없으면 레스토랑도 사라진다.
+  @Field((type) => User)
+  @ManyToOne((type) => User, (user) => user.restaurants)
+  owner: User;
 }

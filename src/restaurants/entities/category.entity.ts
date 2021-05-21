@@ -3,12 +3,16 @@
  *
  * 1개의 category로 다수의 restaurant을 가질 수 있다.
  */
-import { Field, ObjectType } from '@nestjs/graphql';
+import { Field, InputType, ObjectType } from '@nestjs/graphql';
 import { IsString, Length } from 'class-validator';
 import { CoreEntity } from 'src/common/entities/core.entity';
 import { Column, Entity, OneToMany } from 'typeorm';
 import { Restaurant } from './restaurant.entity';
 
+// InputType과 ObjectType의 name이 겹치지 않도록, InputType에 name을 지정하여 사용한다.
+// schema에는 DB에서 인식할 수 있는 Category type과
+// graphql, DB에서 인식 가능한 CategoryInputType이 생성된다.
+@InputType('CategoryInputType', { isAbstract: true })
 @ObjectType() // nest
 @Entity() // typeORM
 export class Category extends CoreEntity {

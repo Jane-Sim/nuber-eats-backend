@@ -10,7 +10,8 @@ import {
 import * as bcrypt from 'bcrypt';
 import { IsBoolean, IsEmail, IsEnum, IsString } from 'class-validator';
 import { CoreEntity } from 'src/common/entities/core.entity';
-import { BeforeInsert, BeforeUpdate, Column, Entity } from 'typeorm';
+import { Restaurant } from 'src/restaurants/entities/restaurant.entity';
+import { BeforeInsert, BeforeUpdate, Column, Entity, OneToMany } from 'typeorm';
 
 // 사용자의 권한을 사용하는 enum
 enum UserRole {
@@ -23,7 +24,10 @@ enum UserRole {
 // registerEnumType 을 사용해서 graphql enum에 등록해야 한다.
 registerEnumType(UserRole, { name: 'UserRole' });
 
-@InputType({ isAbstract: true })
+// InputType과 ObjectType의 name이 겹치지 않도록, InputType에 name을 지정하여 사용한다.
+// schema에는 DB에서 인식할 수 있는 User type과
+// graphql, DB에서 인식 가능한 UserInputType이 생성된다.
+@InputType('UserInputType', { isAbstract: true })
 @ObjectType()
 @Entity()
 export class User extends CoreEntity {
@@ -49,6 +53,11 @@ export class User extends CoreEntity {
   @Field((type) => Boolean)
   @IsBoolean()
   verified: boolean;
+
+  // 1명의 오너는 다수의 레스토랑을 지닌다.
+  @Field((type) => [Restaurant])
+  @OneToMany((type) => Restaurant, (restaurant) => restaurant.owner)
+  restaurants: Restaurant[];
 
   // typeorm에서 제공하는 Entity Listeners and Subscribers중 하나인
   // @BeforeInsert() 데코레이터를 이용하여, typeorm이 db에 데이터를 저장하기 전에,
