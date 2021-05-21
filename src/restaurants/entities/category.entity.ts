@@ -17,15 +17,20 @@ import { Restaurant } from './restaurant.entity';
 @Entity() // typeORM
 export class Category extends CoreEntity {
   @Field((type) => String) // nest(gql)
-  @Column() // typeORM
+  @Column({ unique: true }) // typeORM
   @IsString() // validation
   @Length(5) // validation
   name: string; // nest(typescript)
 
-  @Field((type) => String)
-  @Column()
+  @Field((type) => String, { nullable: true })
+  @Column({ nullable: true })
   @IsString()
   coverImg: string;
+
+  @Field((type) => String)
+  @Column({ unique: true })
+  @IsString()
+  slug: string;
 
   @Field((type) => [Restaurant])
   @OneToMany((type) => Restaurant, (restaurant) => restaurant.category)
