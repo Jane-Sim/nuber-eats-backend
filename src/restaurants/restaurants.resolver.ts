@@ -11,6 +11,10 @@ import {
   CreateRestaurantInput,
   CreateRestaurantOutput,
 } from './dtos/create-restaurant.dto';
+import {
+  EditRestaurantInput,
+  EditRestaurantOutput,
+} from './dtos/edit-restaurant.dto';
 import { Restaurant } from './entities/restaurant.entity';
 import { RestaurantService } from './restaurants.service';
 
@@ -33,6 +37,19 @@ export class RestaurantResolver {
     return await this.restaurantService.createRestaurant(
       authUser,
       createRestaurantInput,
+    );
+  }
+
+  // 레스토랑 정보를 수정하는 Mutation. Owner role을 가진 유저만 실행가능.
+  @Mutation((returns) => EditRestaurantOutput)
+  @Roles('Owner')
+  async EditRestaurant(
+    @AuthUser() owner: User,
+    @Args('input') editRestaurantInput: EditRestaurantInput,
+  ): Promise<EditRestaurantOutput> {
+    return await this.restaurantService.editRestaurant(
+      owner,
+      editRestaurantInput,
     );
   }
 }
