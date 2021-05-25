@@ -161,28 +161,42 @@ export class RestaurantService {
   }
 
   // 특정 카테코리를 가진 레스토랑의 전체 갯수를 반환하는 함수
-  countRestaurants(category: Category) {
+  countRestaurants(category: Category): Promise<number> {
     return this.restaurants.count({ category });
   }
 
   // 특정 slug로 카테고리 데이터를 반환한다.
-  async findCategoryBySlug({ slug }: CategoryInput): Promise<CategoryOutput> {
+  async findCategoryBySlug({
+    slug,
+    page,
+  }: CategoryInput): Promise<CategoryOutput> {
     try {
       // 해당 카테고리와 연관된 restaurant 들도 가져올 수 있도록,
       // relations 기능을 함께 사용한다.
-      const category = await this.categories.findOne(
-        { slug },
-        { relations: ['restaurants'] },
-      );
+      const category = await this.categories.findOne({ slug });
       if (!category) {
         return {
           ok: false,
           error: 'category not found.',
         };
       }
+      // restaurant에서 꺼내오는 데이터 갯수를 25개로 설정하고 (take)
+      // 25개 데이터 이후로 꺼내올 수 있도록 설정한다. (skip)
+      // page 가 1일 때는, skip이 0이므로, 앞의 25개 데이터를 꺼내오고
+      // page 가 2일 때는, skip이 25이므로, 25를 제외한 26번째 데이터부터 25개를 꺼내온다.
+      const restaurants = await this.restaurants.find({
+        where: {
+          category,
+        },
+        take: 25,
+        skip: (page - 1) * 25,
+      });
+      category.restaurants = restaurants;
+      const totalResults: number = await this.countRestaurants(category);
       return {
         ok: true,
         category,
+        totalPages: Math.ceil(totalResults / 25),
       };
     } catch {
       return {

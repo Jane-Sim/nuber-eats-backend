@@ -102,7 +102,9 @@ export class CategoryResolver {
 
   // 특정 slug로 카테고리 데이터를 반환한다.
   @Query((type) => CategoryOutput)
-  category(@Args() categoryInput: CategoryInput): Promise<CategoryOutput> {
+  category(
+    @Args('input') categoryInput: CategoryInput,
+  ): Promise<CategoryOutput> {
     return this.restaurantService.findCategoryBySlug(categoryInput);
   }
 }
