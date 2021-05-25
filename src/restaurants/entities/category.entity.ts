@@ -32,7 +32,8 @@ export class Category extends CoreEntity {
   @IsString()
   slug: string;
 
-  @Field((type) => [Restaurant])
+  // category foreign key를 가진 restaurant을 가져올 수 있도록 관계형 추가.
+  @Field((type) => [Restaurant], { nullable: true })
   @OneToMany((type) => Restaurant, (restaurant) => restaurant.category)
   restaurants: Restaurant[];
 }

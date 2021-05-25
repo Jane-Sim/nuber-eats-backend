@@ -8,6 +8,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { User } from 'src/users/entities/user.entity';
 import { Repository } from 'typeorm';
 import { AllCategoriesOutput } from './dtos/all-categories.dto';
+import { CategoryInput, CategoryOutput } from './dtos/category.dto';
 import {
   CreateRestaurantInput,
   CreateRestaurantOutput,
@@ -162,5 +163,32 @@ export class RestaurantService {
   // 특정 카테코리를 가진 레스토랑의 전체 갯수를 반환하는 함수
   countRestaurants(category: Category) {
     return this.restaurants.count({ category });
+  }
+
+  // 특정 slug로 카테고리 데이터를 반환한다.
+  async findCategoryBySlug({ slug }: CategoryInput): Promise<CategoryOutput> {
+    try {
+      // 해당 카테고리와 연관된 restaurant 들도 가져올 수 있도록,
+      // relations 기능을 함께 사용한다.
+      const category = await this.categories.findOne(
+        { slug },
+        { relations: ['restaurants'] },
+      );
+      if (!category) {
+        return {
+          ok: false,
+          error: 'category not found.',
+        };
+      }
+      return {
+        ok: true,
+        category,
+      };
+    } catch {
+      return {
+        ok: false,
+        error: 'Could not load category.',
+      };
+    }
   }
 }

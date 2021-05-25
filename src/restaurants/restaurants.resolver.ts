@@ -15,6 +15,7 @@ import { AuthUser } from 'src/auth/auth-user.decorator';
 import { Roles } from 'src/auth/role.decorator';
 import { User } from 'src/users/entities/user.entity';
 import { AllCategoriesOutput } from './dtos/all-categories.dto';
+import { CategoryInput, CategoryOutput } from './dtos/category.dto';
 import {
   CreateRestaurantInput,
   CreateRestaurantOutput,
@@ -94,8 +95,14 @@ export class CategoryResolver {
   }
 
   // 모든 카테고리 데이터를 반환한다.
-  @Query((returns) => AllCategoriesOutput)
+  @Query((type) => AllCategoriesOutput)
   allCategories(): Promise<AllCategoriesOutput> {
     return this.restaurantService.allCategories();
+  }
+
+  // 특정 slug로 카테고리 데이터를 반환한다.
+  @Query((type) => CategoryOutput)
+  category(@Args() categoryInput: CategoryInput): Promise<CategoryOutput> {
+    return this.restaurantService.findCategoryBySlug(categoryInput);
   }
 }
