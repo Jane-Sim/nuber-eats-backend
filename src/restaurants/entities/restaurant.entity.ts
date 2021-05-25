@@ -13,8 +13,9 @@ import { Field, InputType, ObjectType } from '@nestjs/graphql';
 import { IsString, Length } from 'class-validator';
 import { CoreEntity } from 'src/common/entities/core.entity';
 import { User } from 'src/users/entities/user.entity';
-import { Column, Entity, ManyToOne, RelationId } from 'typeorm';
+import { Column, Entity, ManyToOne, OneToMany, RelationId } from 'typeorm';
 import { Category } from './category.entity';
+import { Dish } from './dish.entity';
 
 // InputType과 ObjectType의 name이 겹치지 않도록, InputType에 name을 지정하여 사용한다.
 // schema에는 DB에서 인식할 수 있는 Restaurant type과
@@ -62,4 +63,9 @@ export class Restaurant extends CoreEntity {
   // (Owner의 forigen key 값만 find, findOne 등 함수를 통해 가져올 수 있게 된다.)
   @RelationId((restaurant: Restaurant) => restaurant.owner)
   ownerId: number;
+
+  // restaurant foreign key를 가진 category를 가져올 수 있도록 관계형 추가.
+  @Field((type) => [Dish])
+  @OneToMany((type) => Dish, (dish) => dish.restaurant)
+  menu: Dish[];
 }
