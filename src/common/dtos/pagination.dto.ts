@@ -12,6 +12,11 @@ export class PaginationInput {
 
 @ObjectType()
 export class PaginationOutput extends CoreOutput {
+  // paging시, 총 페이지 수.
   @Field((type) => Int, { nullable: true })
   totalPages?: number;
+
+  // 페이징으로 받아온 총 데이터 갯수.
+  @Field((type) => Int, { nullable: true })
+  totalResults?: number;
 }
