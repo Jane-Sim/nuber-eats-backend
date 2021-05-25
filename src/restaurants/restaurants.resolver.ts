@@ -12,6 +12,10 @@ import {
   CreateRestaurantOutput,
 } from './dtos/create-restaurant.dto';
 import {
+  DeleteRestaurantInput,
+  DeleteRestaurantOutput,
+} from './dtos/delete-restaurant.dto';
+import {
   EditRestaurantInput,
   EditRestaurantOutput,
 } from './dtos/edit-restaurant.dto';
@@ -50,6 +54,19 @@ export class RestaurantResolver {
     return await this.restaurantService.editRestaurant(
       owner,
       editRestaurantInput,
+    );
+  }
+
+  // 레스토랑을 삭제하는 Mutation. Owner role을 가진 유저만 실행가능.
+  @Mutation((returns) => DeleteRestaurantOutput)
+  @Roles('Owner')
+  deleteRestaurant(
+    @AuthUser() owner: User,
+    @Args('input') deleteRestaurantInput: DeleteRestaurantInput,
+  ): Promise<DeleteRestaurantOutput> {
+    return this.restaurantService.deleteRestaurant(
+      owner,
+      deleteRestaurantInput,
     );
   }
 }
