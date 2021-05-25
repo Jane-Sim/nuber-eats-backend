@@ -7,6 +7,7 @@ import {
   PaginationOutput,
 } from 'src/common/dtos/pagination.dto';
 import { Category } from '../entities/category.entity';
+import { Restaurant } from '../entities/restaurant.entity';
 
 @InputType()
 export class CategoryInput extends PaginationInput {
@@ -16,6 +17,8 @@ export class CategoryInput extends PaginationInput {
 
 @ObjectType()
 export class CategoryOutput extends PaginationOutput {
+  @Field((type) => [Restaurant], { nullable: true })
+  restaurants?: Restaurant[];
   @Field((type) => Category, { nullable: true })
   category?: Category;
 }
