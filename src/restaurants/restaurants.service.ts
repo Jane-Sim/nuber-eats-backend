@@ -7,6 +7,7 @@ import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { User } from 'src/users/entities/user.entity';
 import { Repository } from 'typeorm';
+import { AllCategoriesOutput } from './dtos/all-categories.dto';
 import {
   CreateRestaurantInput,
   CreateRestaurantOutput,
@@ -140,5 +141,26 @@ export class RestaurantService {
         error: 'Could not delete restaurant.',
       };
     }
+  }
+
+  // 모둔 카테고리 데이터를 반환하는 함수
+  async allCategories(): Promise<AllCategoriesOutput> {
+    try {
+      const categories = await this.categories.find();
+      return {
+        ok: true,
+        categories,
+      };
+    } catch (error) {
+      return {
+        ok: false,
+        error: 'Could not load categories.',
+      };
+    }
+  }
+
+  // 특정 카테코리를 가진 레스토랑의 전체 갯수를 반환하는 함수
+  countRestaurants(category: Category) {
+    return this.restaurants.count({ category });
   }
 }
