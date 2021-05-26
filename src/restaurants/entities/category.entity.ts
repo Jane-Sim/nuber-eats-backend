@@ -25,7 +25,7 @@ export class Category extends CoreEntity {
   @Field((type) => String, { nullable: true })
   @Column({ nullable: true })
   @IsString()
-  coverImg: string;
+  coverImg?: string;
 
   @Field((type) => String)
   @Column({ unique: true })
@@ -35,5 +35,5 @@ export class Category extends CoreEntity {
   // category foreign key를 가진 restaurant을 가져올 수 있도록 관계형 추가.
   @Field((type) => [Restaurant], { nullable: true })
   @OneToMany((type) => Restaurant, (restaurant) => restaurant.category)
-  restaurants: Restaurant[];
+  restaurants?: Restaurant[];
 }

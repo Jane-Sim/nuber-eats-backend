@@ -48,7 +48,7 @@ export class Restaurant extends CoreEntity {
     nullable: true,
     onDelete: 'SET NULL',
   })
-  category: Category;
+  category?: Category;
 
   // 1명의 오너는 여러 개의 레스토랑을 지니고 있다.
   // 레스토랑은 오너가 존재해야 하며, 오너가 없으면 레스토랑도 사라진다.

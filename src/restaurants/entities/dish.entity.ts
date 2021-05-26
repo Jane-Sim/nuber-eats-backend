@@ -7,6 +7,18 @@ import { CoreEntity } from 'src/common/entities/core.entity';
 import { Column, Entity, ManyToOne, RelationId } from 'typeorm';
 import { Restaurant } from './restaurant.entity';
 
+// 음식의 옵션을 설정하는 DishOption. ex) 피자의 맛(name), [하와이안, 치즈크리스피] (choices), 추가비용(extra)
+@InputType('DishOptionInputType', { isAbstract: true })
+@ObjectType()
+class DishOption {
+  @Field((type) => String)
+  name: string;
+  @Field((type) => [String], { nullable: true })
+  choices?: string[];
+  @Field((type) => Number, { nullable: true })
+  extra?: number;
+}
+
 @InputType('DishInputType', { isAbstract: true })
 @ObjectType()
 @Entity()
@@ -22,10 +34,10 @@ export class Dish extends CoreEntity {
   @IsNumber()
   price: number;
 
-  @Field((type) => String)
-  @Column()
+  @Field((type) => String, { nullable: true })
+  @Column({ nullable: true })
   @IsString()
-  photo: string;
+  photo?: string;
 
   @Field((type) => String)
   @Column()
@@ -42,4 +54,10 @@ export class Dish extends CoreEntity {
 
   @RelationId((dish: Dish) => dish.restaurant)
   restaurantId: number;
+
+  // options의 데이터 타입을 json으로 저장하여 생성. MySQL, PostgreSQL만 가능.
+  // DishOption의 Entity를 생성하지 않고, json 타입으로 저장해서 DB에서 사용가능.
+  @Field((type) => [DishOption], { nullable: true })
+  @Column({ type: 'json', nullable: true })
+  options?: DishOption[];
 }
