@@ -7,14 +7,24 @@ import { CoreEntity } from 'src/common/entities/core.entity';
 import { Column, Entity, ManyToOne, RelationId } from 'typeorm';
 import { Restaurant } from './restaurant.entity';
 
+// // 음식의 옵션의 이름과 추가비용. ex) size의 choice는 name: L, extra: 2 / name: XL, extra: 5
+@InputType('DishChoiceInputType', { isAbstract: true })
+@ObjectType()
+class DishChoice {
+  @Field((type) => String)
+  name: string;
+  @Field((type) => Number, { nullable: true })
+  extra?: number;
+}
+
 // 음식의 옵션을 설정하는 DishOption. ex) 피자의 맛(name), [하와이안, 치즈크리스피] (choices), 추가비용(extra)
 @InputType('DishOptionInputType', { isAbstract: true })
 @ObjectType()
 class DishOption {
   @Field((type) => String)
   name: string;
-  @Field((type) => [String], { nullable: true })
-  choices?: string[];
+  @Field((type) => [DishChoice], { nullable: true })
+  choices?: DishChoice[];
   @Field((type) => Number, { nullable: true })
   extra?: number;
 }
