@@ -10,11 +10,12 @@ import {
   ObjectType,
   registerEnumType,
 } from '@nestjs/graphql';
+import { IsEnum, IsNumber } from 'class-validator';
 import { CoreEntity } from 'src/common/entities/core.entity';
-import { Dish } from 'src/restaurants/entities/dish.entity';
 import { Restaurant } from 'src/restaurants/entities/restaurant.entity';
 import { User } from 'src/users/entities/user.entity';
 import { Column, Entity, JoinTable, ManyToMany, ManyToOne } from 'typeorm';
+import { OrderItem } from '../dtos/order-item.entity';
 
 export enum OrderStatus {
   Pending = 'Pending',
@@ -55,21 +56,23 @@ export class Order extends CoreEntity {
   })
   restaurant: Restaurant;
 
-  // 여러 order는 여러 dish를 가질 수 있고, dish도 마찬가지다. @ManyToMany 데코레이터로 관계형을 추가하고,
+  // 여러 order는 여러 dish(OrderItem)을 가질 수 있고, dish도 마찬가지다. @ManyToMany 데코레이터로 관계형을 추가하고,
   // dish에서는 어떤 고객이 해당 dish를 가졌는지는 모르지만,
   // order에서 어떤 고객이 어떤 dish를 시켰는지를 알기 때문에,
   // Order entity에 @JoinTalbe 데코레이터를 추가한다. Order -> Dish로 데이터 접근이 가능 (@ManyToMany 데코레이터를 쓸 경우 표시해야 한다.)
-  @Field((type) => [Dish])
-  @ManyToMany((type) => Dish)
+  @Field((type) => [OrderItem])
+  @ManyToMany((type) => OrderItem)
   @JoinTable()
-  dishes: Dish[];
+  items: OrderItem[];
 
-  @Column()
-  @Field((type) => Float)
-  total: number;
+  @Column({ nullable: true })
+  @Field((type) => Float, { nullable: true })
+  @IsNumber()
+  total?: number;
 
   // order의 상태를 알려주는 status.
   @Column({ type: 'enum', enum: OrderStatus })
   @Field((type) => OrderStatus)
+  @IsEnum(OrderStatus)
   status: OrderStatus;
 }

@@ -20,7 +20,7 @@ class DishChoice {
 // 음식의 옵션을 설정하는 DishOption. ex) 피자의 맛(name), [하와이안, 치즈크리스피] (choices), 추가비용(extra)
 @InputType('DishOptionInputType', { isAbstract: true })
 @ObjectType()
-class DishOption {
+export class DishOption {
   @Field((type) => String)
   name: string;
   @Field((type) => [DishChoice], { nullable: true })
