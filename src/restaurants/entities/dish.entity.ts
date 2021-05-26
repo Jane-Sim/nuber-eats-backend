@@ -10,7 +10,7 @@ import { Restaurant } from './restaurant.entity';
 // // 음식의 옵션의 이름과 추가비용. ex) size의 choice는 name: L, extra: 2 / name: XL, extra: 5
 @InputType('DishChoiceInputType', { isAbstract: true })
 @ObjectType()
-class DishChoice {
+export class DishChoice {
   @Field((type) => String)
   name: string;
   @Field((type) => Number, { nullable: true })

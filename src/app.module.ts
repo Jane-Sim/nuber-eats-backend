@@ -84,13 +84,13 @@ import { OrderItem } from './orders/dtos/order-item.entity';
     UsersModule,
     RestaurantsModule,
     AuthModule,
+    OrdersModule,
     // mailgun 서비스를 이용할 때 필요한 정보를 forRoot에 담아서 보내기.
     MailModule.forRoot({
       apiKey: process.env.MAILGUN_API_KEY,
       domain: process.env.MAILGUN_DOMAIN_NAME,
       fromEmail: process.env.MAILGUN_FROM_EMAIL,
     }),
-    OrdersModule,
   ],
   controllers: [],
   providers: [],

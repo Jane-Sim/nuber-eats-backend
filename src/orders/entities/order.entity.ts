@@ -49,12 +49,12 @@ export class Order extends CoreEntity {
   driver?: User;
 
   // 여러 개의 order는 1개의 restaurant을 갖는다.
-  @Field((type) => Restaurant)
+  @Field((type) => Restaurant, { nullable: true })
   @ManyToOne((type) => Restaurant, (restaurant) => restaurant.orders, {
     onDelete: 'SET NULL',
     nullable: true,
   })
-  restaurant: Restaurant;
+  restaurant?: Restaurant;
 
   // 여러 order는 여러 dish(OrderItem)을 가질 수 있고, dish도 마찬가지다. @ManyToMany 데코레이터로 관계형을 추가하고,
   // dish에서는 어떤 고객이 해당 dish를 가졌는지는 모르지만,
@@ -71,7 +71,7 @@ export class Order extends CoreEntity {
   total?: number;
 
   // order의 상태를 알려주는 status.
-  @Column({ type: 'enum', enum: OrderStatus })
+  @Column({ type: 'enum', enum: OrderStatus, default: OrderStatus.Pending })
   @Field((type) => OrderStatus)
   @IsEnum(OrderStatus)
   status: OrderStatus;
