@@ -12,6 +12,7 @@
 import { Field, InputType, ObjectType } from '@nestjs/graphql';
 import { IsString, Length } from 'class-validator';
 import { CoreEntity } from 'src/common/entities/core.entity';
+import { Order } from 'src/orders/entities/order.entity';
 import { User } from 'src/users/entities/user.entity';
 import { Column, Entity, ManyToOne, OneToMany, RelationId } from 'typeorm';
 import { Category } from './category.entity';
@@ -57,6 +58,11 @@ export class Restaurant extends CoreEntity {
     onDelete: 'CASCADE',
   })
   owner: User;
+
+  // 1개의 레스토랑은 여러 개의 오더(주문)을 가질 수 있다.
+  @Field((type) => [Order])
+  @OneToMany((type) => Order, (Order) => Order.restaurant)
+  orders: Order[];
 
   // 위의 TypeOrm relationship으로 가져오는 User 타입의 Owner 속성 값에서 id 값만 가져오기 부담이거나 번거로울 때,
   // RelationId 데코레이터를 통해, 해당 Owner의 Id 값만 가져올 수 있게끔 설정할 수 있다.

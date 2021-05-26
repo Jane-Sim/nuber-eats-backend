@@ -1,0 +1,75 @@
+/**
+ * order의 entity. core entity를 상속받아서 사용한다.
+ * 여러 개의 오더는 1개의 레스토랑, 고객, 드라이버에 종속되며, 여러 개의 dish를 포함한다.
+ */
+
+import {
+  Field,
+  Float,
+  InputType,
+  ObjectType,
+  registerEnumType,
+} from '@nestjs/graphql';
+import { CoreEntity } from 'src/common/entities/core.entity';
+import { Dish } from 'src/restaurants/entities/dish.entity';
+import { Restaurant } from 'src/restaurants/entities/restaurant.entity';
+import { User } from 'src/users/entities/user.entity';
+import { Column, Entity, JoinTable, ManyToMany, ManyToOne } from 'typeorm';
+
+export enum OrderStatus {
+  Pending = 'Pending',
+  Cooking = 'Cooking',
+  PickedUp = 'PickedUp',
+  Delivered = 'Delivered',
+}
+
+registerEnumType(OrderStatus, { name: 'OrderStatus' });
+
+@InputType('OrderInputType', { isAbstract: true })
+@ObjectType() // nest
+@Entity() // typeORM
+export class Order extends CoreEntity {
+  // 1개의 order는 1명의 user를 갖는다. 1명의 user는 여러 개의 order를 갖는다.
+  // 유저가 삭제되어도 order는 사라지면 안되기에, nullable을 지정한다.
+  @Field((type) => User, { nullable: true })
+  @ManyToOne((type) => User, (user) => user.orders, {
+    onDelete: 'SET NULL',
+    nullable: true,
+  })
+  customer?: User;
+
+  // 1개의 order는 1명의 driver를 갖는다. 처음에는 드라이버가 지정되지 않으니, nullable 추가.
+  // 드라이버가 삭제되어도 order는 사라지면 안되기에, nullable을 지정한다.
+  @Field((type) => User, { nullable: true })
+  @ManyToOne((type) => User, (user) => user.rides, {
+    onDelete: 'SET NULL',
+    nullable: true,
+  })
+  driver?: User;
+
+  // 여러 개의 order는 1개의 restaurant을 갖는다.
+  @Field((type) => Restaurant)
+  @ManyToOne((type) => Restaurant, (restaurant) => restaurant.orders, {
+    onDelete: 'SET NULL',
+    nullable: true,
+  })
+  restaurant: Restaurant;
+
+  // 여러 order는 여러 dish를 가질 수 있고, dish도 마찬가지다. @ManyToMany 데코레이터로 관계형을 추가하고,
+  // dish에서는 어떤 고객이 해당 dish를 가졌는지는 모르지만,
+  // order에서 어떤 고객이 어떤 dish를 시켰는지를 알기 때문에,
+  // Order entity에 @JoinTalbe 데코레이터를 추가한다. Order -> Dish로 데이터 접근이 가능 (@ManyToMany 데코레이터를 쓸 경우 표시해야 한다.)
+  @Field((type) => [Dish])
+  @ManyToMany((type) => Dish)
+  @JoinTable()
+  dishes: Dish[];
+
+  @Column()
+  @Field((type) => Float)
+  total: number;
+
+  // order의 상태를 알려주는 status.
+  @Column({ type: 'enum', enum: OrderStatus })
+  @Field((type) => OrderStatus)
+  status: OrderStatus;
+}

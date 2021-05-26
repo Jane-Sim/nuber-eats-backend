@@ -10,6 +10,7 @@ import {
 import * as bcrypt from 'bcrypt';
 import { IsBoolean, IsEmail, IsEnum, IsString } from 'class-validator';
 import { CoreEntity } from 'src/common/entities/core.entity';
+import { Order } from 'src/orders/entities/order.entity';
 import { Restaurant } from 'src/restaurants/entities/restaurant.entity';
 import { BeforeInsert, BeforeUpdate, Column, Entity, OneToMany } from 'typeorm';
 
@@ -58,6 +59,16 @@ export class User extends CoreEntity {
   @Field((type) => [Restaurant])
   @OneToMany((type) => Restaurant, (restaurant) => restaurant.owner)
   restaurants: Restaurant[];
+
+  // 1명의 유저는 여러 개의 order를 가진다. 고객의 order용.
+  @Field((type) => [Order])
+  @OneToMany((type) => Order, (order) => order.customer)
+  orders: Order[];
+
+  // 1명의 배달원인 driver도 여러 개의 order를 가진다. 라이더의 order용.
+  @Field((type) => [Order])
+  @OneToMany((type) => Order, (order) => order.driver)
+  rides: Order[];
 
   // typeorm에서 제공하는 Entity Listeners and Subscribers중 하나인
   // @BeforeInsert() 데코레이터를 이용하여, typeorm이 db에 데이터를 저장하기 전에,
