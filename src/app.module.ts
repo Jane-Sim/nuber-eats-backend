@@ -1,9 +1,4 @@
-import {
-  MiddlewareConsumer,
-  Module,
-  NestModule,
-  RequestMethod,
-} from '@nestjs/common';
+import { Module } from '@nestjs/common';
 import * as Joi from 'joi';
 import { ConfigModule } from '@nestjs/config';
 import { GraphQLModule } from '@nestjs/graphql';
@@ -11,7 +6,6 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { UsersModule } from './users/users.module';
 import { User } from './users/entities/user.entity';
 import { JwtModule } from './jwt/jwt.module';
-import { jwtMiddleware } from './jwt/jwt.middleware';
 import { Verification } from './users/entities/verification.entity';
 import { MailModule } from './mail/mail.module';
 import { Restaurant } from './restaurants/entities/restaurant.entity';
@@ -79,10 +73,12 @@ import { OrderItem } from './orders/entities/order-item.entity';
       autoSchemaFile: true,
       // request는 HTTP에만 있으며, Websocket은 Connection을 사용한다.
       context: ({ req, connection }) => {
-        // HTTP 요청시, request의 user 데이터를 context에 추가한다.
-        if (req) {
-          return { user: req['user'] };
-        }
+        // HTTP 요청시, request.header의 토큰 값을 context에 추가하며
+        // WebSocket 요청시, connection.context의 토큰 값을 graphql context에 token 프로퍼티로 추가한다.
+        const TOKEN_KEY = 'x-jwt';
+        return {
+          token: req ? req.headers[TOKEN_KEY] : connection.context[TOKEN_KEY],
+        };
       },
     }),
     // 다이나믹 모듈인 JwtModule에서 forRoot함수를 통해 정적인 JwtModule을 꺼내오자.
@@ -103,15 +99,4 @@ import { OrderItem } from './orders/entities/order-item.entity';
   controllers: [],
   providers: [],
 })
-// AppModule에서 implements로 jwtMiddleware를 사용하는 방법
-export class AppModule implements NestModule {
-  // module에서는 configure 함수를 사용해야한다.
-  configure(consumer: MiddlewareConsumer) {
-    // consumer를 통해 jwtMiddleware를 적용하고,
-    // 어떤 경로, REST에서만 해당 미들웨어가 동작되는지도 설정 가능하다.
-    consumer.apply(jwtMiddleware).forRoutes({
-      path: '/graphql',
-      method: RequestMethod.POST,
-    });
-  }
-}
+export class AppModule {}
