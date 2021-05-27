@@ -71,11 +71,19 @@ import { OrderItem } from './orders/entities/order-item.entity';
         OrderItem,
       ],
     }),
+    // installSubscriptionHandlers: Subscription을 사용하기 위해, WebSocket을 사용하도록 설정하는 기능.
     // autoSchemaFile: code first버전으로 graphql의 schema파일을 자동생성하는 기능.
     // context: apollo server의 context를 통해 다른 resolver에서 해당 context 파라미터값에 접근 가능.(user)
     GraphQLModule.forRoot({
+      installSubscriptionHandlers: true,
       autoSchemaFile: true,
-      context: ({ req }) => ({ user: req['user'] }),
+      // request는 HTTP에만 있으며, Websocket은 Connection을 사용한다.
+      context: ({ req, connection }) => {
+        // HTTP 요청시, request의 user 데이터를 context에 추가한다.
+        if (req) {
+          return { user: req['user'] };
+        }
+      },
     }),
     // 다이나믹 모듈인 JwtModule에서 forRoot함수를 통해 정적인 JwtModule을 꺼내오자.
     JwtModule.forRoot({

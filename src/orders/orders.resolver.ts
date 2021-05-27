@@ -2,7 +2,8 @@
  * Order 리졸버.
  * Order 엔티티와 서비스를 주입해서 사용한다.
  */
-import { Args, Mutation, Query, Resolver } from '@nestjs/graphql';
+import { Args, Mutation, Resolver, Query, Subscription } from '@nestjs/graphql';
+import { PubSub } from 'graphql-subscriptions';
 import { AuthUser } from 'src/auth/auth-user.decorator';
 import { Roles } from 'src/auth/role.decorator';
 import { User } from 'src/users/entities/user.entity';
@@ -12,6 +13,10 @@ import { GetOrderInput, GetOrderOutput } from './dtos/get-order.dto';
 import { GetOrdersInput, GetOrdersOutput } from './dtos/get-orders.dto';
 import { Order } from './entities/order.entity';
 import { OrderService } from './orders.service';
+
+// 실시간 조회(구독)을 가능하게 하는 PubSub 인스턴스.
+// app 내부에서 메시지를 교환할 수 있게 해준다.
+const pubsub = new PubSub();
 
 @Resolver((of) => Order)
 export class OrderResolver {
@@ -55,5 +60,23 @@ export class OrderResolver {
     @Args('input') editOrderInput: EditOrderInput,
   ): Promise<EditOrderOutput> {
     return this.ordersService.editOrder(user, editOrderInput);
+  }
+
+  // 생성한 실시간 조회(구독)을 실행시키는 publish 함수.
+  // publish (트리거 이름, payload) 두 개의 인자가 필요하다.
+  // payload는, {트리거를 만든 함수의 이름 : 하고자 하는 동작} 을 넣는다.
+  @Mutation((returns) => Boolean)
+  potatoReady() {
+    pubsub.publish('hotPotatos', {
+      readyPotato: 'YOur potato is ready. love you.',
+    });
+    return true;
+  }
+
+  // pubsub의 asyncIterator로 실시간 구독의 트리거를 생성한다.
+  // asyncIterator(트리거 이름)
+  @Subscription((returns) => String)
+  readyPotato() {
+    return pubsub.asyncIterator('hotPotatos');
   }
 }
