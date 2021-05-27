@@ -14,7 +14,14 @@ import { IsEnum, IsNumber } from 'class-validator';
 import { CoreEntity } from 'src/common/entities/core.entity';
 import { Restaurant } from 'src/restaurants/entities/restaurant.entity';
 import { User } from 'src/users/entities/user.entity';
-import { Column, Entity, JoinTable, ManyToMany, ManyToOne } from 'typeorm';
+import {
+  Column,
+  Entity,
+  JoinTable,
+  ManyToMany,
+  ManyToOne,
+  RelationId,
+} from 'typeorm';
 import { OrderItem } from './order-item.entity';
 
 export enum OrderStatus {
@@ -39,6 +46,9 @@ export class Order extends CoreEntity {
   })
   customer?: User;
 
+  @RelationId((order: Order) => order.customer)
+  customerId: number;
+
   // 1개의 order는 1명의 driver를 갖는다. 처음에는 드라이버가 지정되지 않으니, nullable 추가.
   // 드라이버가 삭제되어도 order는 사라지면 안되기에, nullable을 지정한다.
   @Field((type) => User, { nullable: true })
@@ -47,6 +57,9 @@ export class Order extends CoreEntity {
     nullable: true,
   })
   driver?: User;
+
+  @RelationId((order: Order) => order.driver)
+  driverId: number;
 
   // 여러 개의 order는 1개의 restaurant을 갖는다.
   @Field((type) => Restaurant, { nullable: true })

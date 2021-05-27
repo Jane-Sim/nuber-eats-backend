@@ -5,9 +5,11 @@ import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Dish } from 'src/restaurants/entities/dish.entity';
 import { Restaurant } from 'src/restaurants/entities/restaurant.entity';
-import { User } from 'src/users/entities/user.entity';
+import { User, UserRole } from 'src/users/entities/user.entity';
 import { Repository } from 'typeorm';
 import { CreateOrderInput, CreateOrderOutput } from './dtos/create-order.dto';
+import { GetOrderInput, GetOrderOutput } from './dtos/get-order.dto';
+import { GetOrdersInput, GetOrdersOutput } from './dtos/get-orders.dto';
 import { OrderItem } from './entities/order-item.entity';
 import { Order } from './entities/order.entity';
 
@@ -114,6 +116,114 @@ export class OrderService {
       return {
         ok: false,
         error: 'Could not create order.',
+      };
+    }
+  }
+
+  // 주문 목록을 반환하는 함수
+  // Owner, Client, Delivery마다 반환받는 orders의 데이터가 다르다.
+  async getOrders(
+    user: User,
+    { status }: GetOrdersInput,
+  ): Promise<GetOrdersOutput> {
+    try {
+      let orders: Order[];
+      // 고객이 주문 목록을 받고 싶을 때, customer가 현재 유저와 일치하는 주문 목록을 반환.
+      if (user.role === UserRole.Client) {
+        orders = await this.orders.find({
+          where: {
+            customer: user,
+          },
+        });
+        // 드라이버가 주문 목록을 받고 싶을 때, driver가 현재 유저와 일치하는 주문 목록을 반환.
+      } else if (user.role === UserRole.Delivery) {
+        orders = await this.orders.find({
+          where: {
+            driver: user,
+            ...(status && { status }),
+          },
+        });
+        // 레스토랑 주인이 주문 목록을 받고 싶을 때, restaurant의 owner가 현재 유저와 일치하는 주문 목록을 반환.
+        // 현재 레스토랑과 연관있는 order 데이터들을 받아온다
+      } else if (user.role === UserRole.Owner) {
+        const restaurants = await this.restaurants.find({
+          where: {
+            owner: user,
+            ...(status && { status }),
+          },
+          relations: ['orders'],
+        });
+        // orders의 배열만 반환할 수 있도록, restaurant에서 order 배열을 꺼내어 새 배열로 반환한다.
+        // flat을 이용해 빈 배열은 제거한다.
+        orders = restaurants.map((restaurant) => restaurant.orders).flat(1);
+        // 만약 주문 상태로 구분한 주문 목록을 보고 싶어한다면, filter 기능으로 반환한다.
+        if (status) {
+          orders = orders.filter((order) => order.status === status);
+        }
+      }
+      return {
+        ok: true,
+        orders,
+      };
+    } catch {
+      return {
+        ok: false,
+        error: 'Could not get orders',
+      };
+    }
+  }
+
+  // 한 개의 주문을 반환하는 함수
+  // 다른 사람의 order를 조회하려는 의도를 막는다.
+  async getOrder(
+    user: User,
+    { id: orderId }: GetOrderInput,
+  ): Promise<GetOrderOutput> {
+    try {
+      // 해당 id의 주문을 가져온다.
+      // 주문 조회를 하는 사람이 owner일 경우를 대비해, restaurant 정보를 함께 가져온다.
+      const order = await this.orders.findOne(orderId, {
+        relations: ['restaurant'],
+      });
+      // order가 없을 때,
+      if (!order) {
+        return {
+          ok: false,
+          error: 'Order not found.',
+        };
+      }
+      // 사용자가 해당 함수를 실행할 수 있는지 구분짓는 권한.
+      let canSee = true;
+      // 사용자의 Role이 고객일때, 등록된 고객 id와 현재 유저의 id가 일치하지 않으면, 주문 조회 불가.
+      if (user.role === UserRole.Client && order.customerId !== user.id) {
+        canSee = false;
+      }
+      // 사용자의 Role이 드라이버일때, 등록된 드라이버 id와 현재 유저의 id가 일치하지 않으면, 주문 조회 불가.
+      if (user.role === UserRole.Delivery && order.driverId !== user.id) {
+        canSee = false;
+      }
+      // 사용자의 Role이 주인이고, 등록된 레스토랑 주인 id와 현재 유저의 id가 일치하지 않으면, 주문 조회 불가.
+      if (
+        user.role === UserRole.Owner &&
+        order.restaurant.ownerId !== user.id
+      ) {
+        canSee = false;
+      }
+      if (!canSee) {
+        return {
+          ok: false,
+          error: 'You cant see that',
+        };
+      }
+      // 주문을 반환한다.
+      return {
+        ok: true,
+        order,
+      };
+    } catch {
+      return {
+        ok: false,
+        error: 'Could not load order.',
       };
     }
   }
