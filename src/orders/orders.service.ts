@@ -3,12 +3,12 @@
  */
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Dish, DishOption } from 'src/restaurants/entities/dish.entity';
+import { Dish } from 'src/restaurants/entities/dish.entity';
 import { Restaurant } from 'src/restaurants/entities/restaurant.entity';
 import { User } from 'src/users/entities/user.entity';
 import { Repository } from 'typeorm';
 import { CreateOrderInput, CreateOrderOutput } from './dtos/create-order.dto';
-import { OrderItem } from './dtos/order-item.entity';
+import { OrderItem } from './entities/order-item.entity';
 import { Order } from './entities/order.entity';
 
 @Injectable()

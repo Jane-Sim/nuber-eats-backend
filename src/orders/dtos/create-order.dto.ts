@@ -3,7 +3,7 @@
  */
 import { Field, InputType, ObjectType, PickType } from '@nestjs/graphql';
 import { CoreOutput } from 'src/common/dtos/output.dto';
-import { OrderItemOption } from './order-item.entity';
+import { OrderItemOption } from '../entities/order-item.entity';
 
 // 어떤 dish의 OrderItem인지 찾기 필요한 dishId 속성 값과, 해당 dish에 필요한 options 속성 값을 추가한다.
 @InputType()
