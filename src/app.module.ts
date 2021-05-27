@@ -16,6 +16,7 @@ import { Dish } from './restaurants/entities/dish.entity';
 import { OrdersModule } from './orders/orders.module';
 import { Order } from './orders/entities/order.entity';
 import { OrderItem } from './orders/entities/order-item.entity';
+import { CommonModule } from './common/common.module';
 
 @Module({
   imports: [
@@ -89,6 +90,7 @@ import { OrderItem } from './orders/entities/order-item.entity';
     RestaurantsModule,
     AuthModule,
     OrdersModule,
+    CommonModule,
     // mailgun 서비스를 이용할 때 필요한 정보를 forRoot에 담아서 보내기.
     MailModule.forRoot({
       apiKey: process.env.MAILGUN_API_KEY,

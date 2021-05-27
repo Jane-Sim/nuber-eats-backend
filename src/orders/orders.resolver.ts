@@ -2,10 +2,12 @@
  * Order 리졸버.
  * Order 엔티티와 서비스를 주입해서 사용한다.
  */
+import { Inject } from '@nestjs/common';
 import { Args, Mutation, Resolver, Query, Subscription } from '@nestjs/graphql';
 import { PubSub } from 'graphql-subscriptions';
 import { AuthUser } from 'src/auth/auth-user.decorator';
 import { Roles } from 'src/auth/role.decorator';
+import { PUB_SUB } from 'src/common/common.constants';
 import { User } from 'src/users/entities/user.entity';
 import { CreateOrderInput, CreateOrderOutput } from './dtos/create-order.dto';
 import { EditOrderInput, EditOrderOutput } from './dtos/edit-order.dto';
@@ -14,13 +16,14 @@ import { GetOrdersInput, GetOrdersOutput } from './dtos/get-orders.dto';
 import { Order } from './entities/order.entity';
 import { OrderService } from './orders.service';
 
-// 실시간 조회(구독)을 가능하게 하는 PubSub 인스턴스.
-// app 내부에서 메시지를 교환할 수 있게 해준다.
-const pubsub = new PubSub();
-
+// order service와,
+// app 내부에서 메시지를 교환할 수 있고, 실시간 조회(구독)을 가능하게 하는 PubSub 인스턴스를 @Inject 데코레이터로 가져온다.
 @Resolver((of) => Order)
 export class OrderResolver {
-  constructor(private readonly ordersService: OrderService) {}
+  constructor(
+    private readonly ordersService: OrderService,
+    @Inject(PUB_SUB) private readonly pubSub: PubSub,
+  ) {}
 
   // 고객의 주문으로 order를 생성하는 Mutation
   @Mutation((returns) => CreateOrderOutput)
@@ -67,7 +70,7 @@ export class OrderResolver {
   // payload는, {트리거를 만든 함수의 이름 : 하고자 하는 동작} 을 넣는다.
   @Mutation((returns) => Boolean)
   potatoReady() {
-    pubsub.publish('hotPotatos', {
+    this.pubSub.publish('hotPotatos', {
       readyPotato: 'YOur potato is ready. love you.',
     });
     return true;
@@ -77,6 +80,6 @@ export class OrderResolver {
   // asyncIterator(트리거 이름)
   @Subscription((returns) => String)
   readyPotato() {
-    return pubsub.asyncIterator('hotPotatos');
+    return this.pubSub.asyncIterator('hotPotatos');
   }
 }
