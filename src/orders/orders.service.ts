@@ -8,10 +8,11 @@ import { Restaurant } from 'src/restaurants/entities/restaurant.entity';
 import { User, UserRole } from 'src/users/entities/user.entity';
 import { Repository } from 'typeorm';
 import { CreateOrderInput, CreateOrderOutput } from './dtos/create-order.dto';
+import { EditOrderInput, EditOrderOutput } from './dtos/edit-order.dto';
 import { GetOrderInput, GetOrderOutput } from './dtos/get-order.dto';
 import { GetOrdersInput, GetOrdersOutput } from './dtos/get-orders.dto';
 import { OrderItem } from './entities/order-item.entity';
-import { Order } from './entities/order.entity';
+import { Order, OrderStatus } from './entities/order.entity';
 
 @Injectable()
 export class OrderService {
@@ -173,6 +174,25 @@ export class OrderService {
     }
   }
 
+  // 현재 유저가 주문을 볼 수 있는지 체크하는 함수
+  canSeeOrder(user: User, order: Order): boolean {
+    // 사용자가 해당 함수를 실행할 수 있는지 구분짓는 권한.
+    let canSee = true;
+    // 사용자의 Role이 고객일때, 등록된 고객 id와 현재 유저의 id가 일치하지 않으면, 주문 조회 불가.
+    if (user.role === UserRole.Client && order.customerId !== user.id) {
+      canSee = false;
+    }
+    // 사용자의 Role이 드라이버일때, 등록된 드라이버 id와 현재 유저의 id가 일치하지 않으면, 주문 조회 불가.
+    if (user.role === UserRole.Delivery && order.driverId !== user.id) {
+      canSee = false;
+    }
+    // 사용자의 Role이 주인이고, 등록된 레스토랑 주인 id와 현재 유저의 id가 일치하지 않으면, 주문 조회 불가.
+    if (user.role === UserRole.Owner && order.restaurant.ownerId !== user.id) {
+      canSee = false;
+    }
+    return canSee;
+  }
+
   // 한 개의 주문을 반환하는 함수
   // 다른 사람의 order를 조회하려는 의도를 막는다.
   async getOrder(
@@ -192,24 +212,8 @@ export class OrderService {
           error: 'Order not found.',
         };
       }
-      // 사용자가 해당 함수를 실행할 수 있는지 구분짓는 권한.
-      let canSee = true;
-      // 사용자의 Role이 고객일때, 등록된 고객 id와 현재 유저의 id가 일치하지 않으면, 주문 조회 불가.
-      if (user.role === UserRole.Client && order.customerId !== user.id) {
-        canSee = false;
-      }
-      // 사용자의 Role이 드라이버일때, 등록된 드라이버 id와 현재 유저의 id가 일치하지 않으면, 주문 조회 불가.
-      if (user.role === UserRole.Delivery && order.driverId !== user.id) {
-        canSee = false;
-      }
-      // 사용자의 Role이 주인이고, 등록된 레스토랑 주인 id와 현재 유저의 id가 일치하지 않으면, 주문 조회 불가.
-      if (
-        user.role === UserRole.Owner &&
-        order.restaurant.ownerId !== user.id
-      ) {
-        canSee = false;
-      }
-      if (!canSee) {
+      // 현재 유저가 해당 주문확인 권한이 없을 때,
+      if (!this.canSeeOrder(user, order)) {
         return {
           ok: false,
           error: 'You cant see that',
@@ -224,6 +228,74 @@ export class OrderService {
       return {
         ok: false,
         error: 'Could not load order.',
+      };
+    }
+  }
+
+  // owner와 delivery 가 해당 주문의 상태를 변경시 사용하는 함수
+  async editOrder(
+    user: User,
+    { id: orderId, status }: EditOrderInput,
+  ): Promise<EditOrderOutput> {
+    try {
+      // 변경하고자 하는 order를 조회한다.
+      const order = await this.orders.findOne(orderId, {
+        relations: ['restaurant'],
+      });
+      if (!order) {
+        return {
+          ok: false,
+          error: 'Order not found.',
+        };
+      }
+      // 현재 유저가 해당 주문확인 권한이 없을 때,
+      if (!this.canSeeOrder(user, order)) {
+        return {
+          ok: false,
+          error: "Can't see this.",
+        };
+      }
+
+      let canEdit = true;
+      // 고객은 주문변경 권한이 없다.
+      if (user.role === UserRole.Client) {
+        canEdit = false;
+      }
+      // 오너는 Cooking, Cooked 이외의 상태로 변경하지 못한다.
+      if (user.role === UserRole.Owner) {
+        if (status !== OrderStatus.Cooking && status !== OrderStatus.Cooked) {
+          canEdit = false;
+        }
+      }
+      // 라이더는 PickedUp, Delivered 이외의 상태로 변경하지 못한다.
+      if (user.role === UserRole.Delivery) {
+        if (
+          status !== OrderStatus.PickedUp &&
+          status !== OrderStatus.Delivered
+        ) {
+          canEdit = false;
+        }
+      }
+      if (!canEdit) {
+        return {
+          ok: false,
+          error: "You can't do that.",
+        };
+      }
+      // 해당 주문의 상태를 변경한다.
+      await this.orders.save([
+        {
+          id: orderId,
+          status,
+        },
+      ]);
+      return {
+        ok: true,
+      };
+    } catch {
+      return {
+        ok: false,
+        error: 'Could not edit order.',
       };
     }
   }

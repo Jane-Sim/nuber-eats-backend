@@ -24,9 +24,17 @@ import {
 } from 'typeorm';
 import { OrderItem } from './order-item.entity';
 
+/**
+ * Pending = 대기상태,
+ * Cooking = 조리중,
+ * Cooked = 조리완료,
+ * PickedUp = 음식 픽업,
+ * Delivered = 배달완료,
+ */
 export enum OrderStatus {
   Pending = 'Pending',
   Cooking = 'Cooking',
+  Cooked = 'Cooked',
   PickedUp = 'PickedUp',
   Delivered = 'Delivered',
 }

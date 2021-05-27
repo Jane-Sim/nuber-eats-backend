@@ -7,6 +7,7 @@ import { AuthUser } from 'src/auth/auth-user.decorator';
 import { Roles } from 'src/auth/role.decorator';
 import { User } from 'src/users/entities/user.entity';
 import { CreateOrderInput, CreateOrderOutput } from './dtos/create-order.dto';
+import { EditOrderInput, EditOrderOutput } from './dtos/edit-order.dto';
 import { GetOrderInput, GetOrderOutput } from './dtos/get-order.dto';
 import { GetOrdersInput, GetOrdersOutput } from './dtos/get-orders.dto';
 import { Order } from './entities/order.entity';
@@ -44,5 +45,15 @@ export class OrderResolver {
     @Args('input') getOrderInput: GetOrderInput,
   ): Promise<GetOrderOutput> {
     return this.ordersService.getOrder(user, getOrderInput);
+  }
+
+  // 주문 상태를 변경하는 Mutation
+  @Mutation((returns) => EditOrderOutput)
+  @Roles('Any')
+  async editOrder(
+    @AuthUser() user: User,
+    @Args('input') editOrderInput: EditOrderInput,
+  ): Promise<EditOrderOutput> {
+    return this.ordersService.editOrder(user, editOrderInput);
   }
 }
