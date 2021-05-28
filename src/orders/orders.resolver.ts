@@ -7,7 +7,11 @@ import { Args, Mutation, Resolver, Query, Subscription } from '@nestjs/graphql';
 import { PubSub } from 'graphql-subscriptions';
 import { AuthUser } from 'src/auth/auth-user.decorator';
 import { Roles } from 'src/auth/role.decorator';
-import { PUB_SUB, NEW_PENDING_ORDER } from 'src/common/common.constants';
+import {
+  PUB_SUB,
+  NEW_PENDING_ORDER,
+  NEW_COOKED_ORDER,
+} from 'src/common/common.constants';
 import { User } from 'src/users/entities/user.entity';
 import { CreateOrderInput, CreateOrderOutput } from './dtos/create-order.dto';
 import { EditOrderInput, EditOrderOutput } from './dtos/edit-order.dto';
@@ -90,5 +94,12 @@ export class OrderResolver {
   @Roles('Owner')
   pendingOrders(): AsyncIterator<Order> {
     return this.pubSub.asyncIterator(NEW_PENDING_ORDER);
+  }
+
+  // owner가 요리완료시, delivery에게 실시간 알람을 받게해주는 Subscription.
+  @Subscription((returns) => Order)
+  @Roles('Delivery')
+  cookedOrders(): AsyncIterator<Order> {
+    return this.pubSub.asyncIterator(NEW_COOKED_ORDER);
   }
 }

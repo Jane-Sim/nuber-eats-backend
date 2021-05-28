@@ -4,7 +4,11 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { PubSub } from 'graphql-subscriptions';
-import { NEW_PENDING_ORDER, PUB_SUB } from 'src/common/common.constants';
+import {
+  NEW_COOKED_ORDER,
+  NEW_PENDING_ORDER,
+  PUB_SUB,
+} from 'src/common/common.constants';
 import { Dish } from 'src/restaurants/entities/dish.entity';
 import { Restaurant } from 'src/restaurants/entities/restaurant.entity';
 import { User, UserRole } from 'src/users/entities/user.entity';
@@ -253,9 +257,7 @@ export class OrderService {
   ): Promise<EditOrderOutput> {
     try {
       // 변경하고자 하는 order를 조회한다.
-      const order = await this.orders.findOne(orderId, {
-        relations: ['restaurant'],
-      });
+      const order = await this.orders.findOne(orderId);
       if (!order) {
         return {
           ok: false,
@@ -297,12 +299,22 @@ export class OrderService {
         };
       }
       // 해당 주문의 상태를 변경한다.
-      await this.orders.save([
-        {
-          id: orderId,
-          status,
-        },
-      ]);
+      await this.orders.save({
+        id: orderId,
+        status,
+      });
+
+      // owner가 order status 변경시, delivery에게 알람을 전달하기 위해
+      // NEW_COOKED_ORDER 트리거를 구독하는 resolver에 order를 반환한다.
+      // orders.save 함수는, order entity의 모든 정보를 반환하지 않기에,
+      // 이전에 가져온 order 정보에, 변경한 status를 적용하여 order를 반환한다.
+      if (user.role === UserRole.Owner) {
+        if (status === OrderStatus.Cooked) {
+          await this.pubSub.publish(NEW_COOKED_ORDER, {
+            cookedOrders: { ...order, status },
+          });
+        }
+      }
       return {
         ok: true,
       };

@@ -47,10 +47,12 @@ registerEnumType(OrderStatus, { name: 'OrderStatus' });
 export class Order extends CoreEntity {
   // 1개의 order는 1명의 user를 갖는다. 1명의 user는 여러 개의 order를 갖는다.
   // 유저가 삭제되어도 order는 사라지면 안되기에, nullable을 지정한다.
+  // customer가 항상 relations으로 같이 보여지길 원하기에, eager relations 를 추가한다.
   @Field((type) => User, { nullable: true })
   @ManyToOne((type) => User, (user) => user.orders, {
     onDelete: 'SET NULL',
     nullable: true,
+    eager: true,
   })
   customer?: User;
 
@@ -63,6 +65,7 @@ export class Order extends CoreEntity {
   @ManyToOne((type) => User, (user) => user.rides, {
     onDelete: 'SET NULL',
     nullable: true,
+    eager: true,
   })
   driver?: User;
 
@@ -74,6 +77,7 @@ export class Order extends CoreEntity {
   @ManyToOne((type) => Restaurant, (restaurant) => restaurant.orders, {
     onDelete: 'SET NULL',
     nullable: true,
+    eager: true,
   })
   restaurant?: Restaurant;
 
@@ -82,7 +86,7 @@ export class Order extends CoreEntity {
   // order에서 어떤 고객이 어떤 dish를 시켰는지를 알기 때문에,
   // Order entity에 @JoinTalbe 데코레이터를 추가한다. Order -> Dish로 데이터 접근이 가능 (@ManyToMany 데코레이터를 쓸 경우 표시해야 한다.)
   @Field((type) => [OrderItem])
-  @ManyToMany((type) => OrderItem)
+  @ManyToMany((type) => OrderItem, { eager: true })
   @JoinTable()
   items: OrderItem[];
 
