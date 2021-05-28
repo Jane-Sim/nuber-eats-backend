@@ -1,8 +1,10 @@
 /**
  * Order 서비스.
  */
-import { Injectable } from '@nestjs/common';
+import { Inject, Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
+import { PubSub } from 'graphql-subscriptions';
+import { NEW_PENDING_ORDER, PUB_SUB } from 'src/common/common.constants';
 import { Dish } from 'src/restaurants/entities/dish.entity';
 import { Restaurant } from 'src/restaurants/entities/restaurant.entity';
 import { User, UserRole } from 'src/users/entities/user.entity';
@@ -25,6 +27,7 @@ export class OrderService {
     private readonly restaurants: Repository<Restaurant>,
     @InjectRepository(Dish)
     private readonly dishes: Repository<Dish>,
+    @Inject(PUB_SUB) private readonly pubSub: PubSub,
   ) {}
 
   // order를 생성하는 함수
@@ -102,7 +105,7 @@ export class OrderService {
       }
 
       // 주문한 고객과, 선택한 레스토랑, 선택한 orderItems, 총 items의 토탈가격을 orders 데이터로 저장한다.
-      await this.orders.save(
+      const order = await this.orders.save(
         this.orders.create({
           customer,
           restaurant,
@@ -110,6 +113,17 @@ export class OrderService {
           items: orderItems,
         }),
       );
+
+      /**
+       * 생성한 실시간 조회(구독)을 실행시키는 publish 함수.
+       * publish (트리거 이름, payload) 두 개의 인자가 필요하다.
+       * payload에는, {트리거를 만든 resolver 함수의 이름 : 하고자 하는 동작} 을 넣는다.
+       */
+      // restaurant owner가 해당 order를 확인할 수 있도록,
+      // 생성한 order와 ownerId를 NEW_PENDING_ORDER 트리거를 구독하는 resolver에 반환한다.
+      await this.pubSub.publish(NEW_PENDING_ORDER, {
+        pendingOrders: { order, ownerId: restaurant.ownerId },
+      });
       return {
         ok: true,
       };
