@@ -18,6 +18,7 @@ import { CreateOrderInput, CreateOrderOutput } from './dtos/create-order.dto';
 import { EditOrderInput, EditOrderOutput } from './dtos/edit-order.dto';
 import { GetOrderInput, GetOrderOutput } from './dtos/get-order.dto';
 import { GetOrdersInput, GetOrdersOutput } from './dtos/get-orders.dto';
+import { TakeOrderInput, TakeOrderOutput } from './dtos/take-order.dto';
 import { OrderItem } from './entities/order-item.entity';
 import { Order, OrderStatus } from './entities/order.entity';
 
@@ -325,6 +326,49 @@ export class OrderService {
       return {
         ok: false,
         error: 'Could not edit order.',
+      };
+    }
+  }
+
+  // 요리가 다 된 Order에 딜리버리 유저를 추가하여 Order를 업데이트하는 함수.
+  async takeOrder(
+    driver: User,
+    { id: orderId }: TakeOrderInput,
+  ): Promise<TakeOrderOutput> {
+    try {
+      const order = await this.orders.findOne(orderId);
+      /** defensive programming 시작. */
+      // 해당 Order가 DB에 없을 경우,
+      if (!order) {
+        return {
+          ok: false,
+          error: 'Order not found',
+        };
+      }
+      // 해당 Order에 이미 딜리버리가 있는 경우,
+      if (order.driver) {
+        return {
+          ok: false,
+          error: 'This order already has a driver',
+        };
+      }
+      /** defensive programming 종료. */
+      // order를 업데이트.
+      await this.orders.save({
+        id: orderId,
+        driver,
+      });
+      // 해당 order와 관련있는 owner, client, delivery에게 새로운 딜리버리가 추가된 order를 전달한다.
+      await this.pubSub.publish(NEW_ORDER_UPDATE, {
+        orderUpdates: { ...order, driver },
+      });
+      return {
+        ok: true,
+      };
+    } catch {
+      return {
+        ok: false,
+        error: 'Could not upate order.',
       };
     }
   }

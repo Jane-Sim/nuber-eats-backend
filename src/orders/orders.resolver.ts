@@ -19,6 +19,7 @@ import { EditOrderInput, EditOrderOutput } from './dtos/edit-order.dto';
 import { GetOrderInput, GetOrderOutput } from './dtos/get-order.dto';
 import { GetOrdersInput, GetOrdersOutput } from './dtos/get-orders.dto';
 import { OrderUpdatesInput } from './dtos/order-updates.dto';
+import { TakeOrderInput, TakeOrderOutput } from './dtos/take-order.dto';
 import { Order } from './entities/order.entity';
 import { OrderService } from './orders.service';
 
@@ -131,5 +132,15 @@ export class OrderResolver {
     @Args('input') orderUpdatesInput: OrderUpdatesInput,
   ): AsyncIterator<Order> {
     return this.pubSub.asyncIterator(NEW_ORDER_UPDATE);
+  }
+
+  // 딜리버리가 요리가 다 된 Order를 전담할 때 사용하는 Mutation.
+  @Mutation((returns) => TakeOrderOutput)
+  @Roles('Delivery')
+  takeOrder(
+    @AuthUser() driver: User,
+    @Args('input') takeOrderInput: TakeOrderInput,
+  ): Promise<TakeOrderOutput> {
+    return this.ordersService.takeOrder(driver, takeOrderInput);
   }
 }
