@@ -11,12 +11,14 @@ import {
   PUB_SUB,
   NEW_PENDING_ORDER,
   NEW_COOKED_ORDER,
+  NEW_ORDER_UPDATE,
 } from 'src/common/common.constants';
 import { User } from 'src/users/entities/user.entity';
 import { CreateOrderInput, CreateOrderOutput } from './dtos/create-order.dto';
 import { EditOrderInput, EditOrderOutput } from './dtos/edit-order.dto';
 import { GetOrderInput, GetOrderOutput } from './dtos/get-order.dto';
 import { GetOrdersInput, GetOrdersOutput } from './dtos/get-orders.dto';
+import { OrderUpdatesInput } from './dtos/order-updates.dto';
 import { Order } from './entities/order.entity';
 import { OrderService } from './orders.service';
 
@@ -101,5 +103,33 @@ export class OrderResolver {
   @Roles('Delivery')
   cookedOrders(): AsyncIterator<Order> {
     return this.pubSub.asyncIterator(NEW_COOKED_ORDER);
+  }
+
+  // order의 상태가 변경될 때마다, 해당 order 데이터를 실시간으로 받는 Subscription.
+  // 해당 오더와 관련있는 owner, client, delivery 전부 전달받는다.
+  @Subscription((returns) => Order, {
+    // 업데이트된 order와 실시간 구독을 받는 argument인 input의 id, context에 저장된 유저를 가져와
+    // 해당 함수를 사용하는 사용자의 id와 해당 order에 속한 owner, client, delivery 중 속한 Role의 id가 일치할 때만 asyncIterator를 반환한다.
+    filter: (
+      { orderUpdates: order }: { orderUpdates: Order },
+      { input }: { input: OrderUpdatesInput },
+      { user }: { user: User },
+    ) => {
+      // 3조건 중 하나도 일치하지 않으면 false를 반환.
+      if (
+        order.driverId !== user.id &&
+        order.customerId !== user.id &&
+        order.restaurant.ownerId !== user.id
+      ) {
+        return false;
+      }
+      return order.id === input.id;
+    },
+  })
+  @Roles('Any')
+  orderUpdates(
+    @Args('input') orderUpdatesInput: OrderUpdatesInput,
+  ): AsyncIterator<Order> {
+    return this.pubSub.asyncIterator(NEW_ORDER_UPDATE);
   }
 }

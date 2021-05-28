@@ -6,6 +6,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { PubSub } from 'graphql-subscriptions';
 import {
   NEW_COOKED_ORDER,
+  NEW_ORDER_UPDATE,
   NEW_PENDING_ORDER,
   PUB_SUB,
 } from 'src/common/common.constants';
@@ -303,18 +304,20 @@ export class OrderService {
         id: orderId,
         status,
       });
-
-      // owner가 order status 변경시, delivery에게 알람을 전달하기 위해
-      // NEW_COOKED_ORDER 트리거를 구독하는 resolver에 order를 반환한다.
       // orders.save 함수는, order entity의 모든 정보를 반환하지 않기에,
       // 이전에 가져온 order 정보에, 변경한 status를 적용하여 order를 반환한다.
+      const newOrder = { ...order, status };
+      // owner가 order status 변경시, delivery에게 알람을 전달하기 위해
+      // NEW_COOKED_ORDER 트리거를 구독하는 resolver에 order를 반환한다.
       if (user.role === UserRole.Owner) {
         if (status === OrderStatus.Cooked) {
           await this.pubSub.publish(NEW_COOKED_ORDER, {
-            cookedOrders: { ...order, status },
+            cookedOrders: newOrder,
           });
         }
       }
+      // 해당 order와 관련있는 owner, client, delivery에게 status가 변경된 order를 전달한다.
+      await this.pubSub.publish(NEW_ORDER_UPDATE, { orderUpdates: newOrder });
       return {
         ok: true,
       };
