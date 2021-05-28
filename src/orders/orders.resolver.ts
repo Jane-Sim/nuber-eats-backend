@@ -67,19 +67,27 @@ export class OrderResolver {
 
   // 생성한 실시간 조회(구독)을 실행시키는 publish 함수.
   // publish (트리거 이름, payload) 두 개의 인자가 필요하다.
-  // payload는, {트리거를 만든 함수의 이름 : 하고자 하는 동작} 을 넣는다.
+  // payload에는, {트리거를 만든 함수의 이름 : 하고자 하는 동작} 을 넣는다.
   @Mutation((returns) => Boolean)
-  potatoReady() {
-    this.pubSub.publish('hotPotatos', {
-      readyPotato: 'YOur potato is ready. love you.',
+  async potatoReady(@Args('potatoId') potatoId: number) {
+    await this.pubSub.publish('hotPotatos', {
+      readyPotato: potatoId,
     });
     return true;
   }
 
   // pubsub의 asyncIterator로 실시간 구독의 트리거를 생성한다.
   // asyncIterator(트리거 이름)
-  @Subscription((returns) => String)
-  readyPotato() {
+  // 특정 조건에 해당되는 실시간 구독을 받고 싶을 때, filter 기능을 사용한다.
+  // filter(publish에서 보낸 payload, readyPotato에서 설정한 Argument potatoId인 variables, graphqlContext) 3개의 파라미터가 설정되어있다.
+  // potatoReady의 potatoI와 readyPotato potatoId가 일치하면,알람을 받게된다.
+  @Subscription((returns) => String, {
+    filter: ({ readyPotato }, { potatoId }) => {
+      return readyPotato === potatoId;
+    },
+  })
+  @Roles('Any')
+  readyPotato(@Args('potatoId') potatoId: number) {
     return this.pubSub.asyncIterator('hotPotatos');
   }
 }
