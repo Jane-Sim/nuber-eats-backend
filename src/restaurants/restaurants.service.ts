@@ -192,6 +192,7 @@ export class RestaurantService {
           error: 'category not found.',
         };
       }
+      // 프로모션 중인 레스토랑을 먼저 볼 수 있도록, order를 사용해서, isPromoted 속성이 true가 먼저 나열되도록 설정한다.
       // restaurant에서 꺼내오는 데이터 갯수를 25개로 설정하고 (take)
       // 25개 데이터 이후로 꺼내올 수 있도록 설정한다. (skip)
       // page 가 1일 때는, skip이 0이므로, 앞의 25개 데이터를 꺼내오고
@@ -199,6 +200,9 @@ export class RestaurantService {
       const restaurants = await this.restaurants.find({
         where: {
           category,
+        },
+        order: {
+          isPromoted: 'DESC',
         },
         take: 25,
         skip: (page - 1) * 25,
@@ -224,6 +228,9 @@ export class RestaurantService {
       const [restaurants, totalResults] = await this.restaurants.findAndCount({
         skip: (page - 1) * 25,
         take: 25,
+        order: {
+          isPromoted: 'DESC',
+        },
       });
       return {
         ok: true,

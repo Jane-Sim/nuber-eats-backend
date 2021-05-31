@@ -51,6 +51,14 @@ export class PaymentService {
           restaurant,
         }),
       );
+      // 해당 레스토랑의 프로모션 체크 후,
+      restaurant.isPromoted = true;
+      //현재 시간으로부터 7일간 프로모션 기간을 설정한다.
+      const date = new Date();
+      date.setDate(date.getDate() + 7);
+      restaurant.promotedUntil = date;
+      // 설정한 내용으로 해당 레스토랑을 업데이트한다.
+      this.restaurants.save(restaurant);
       return {
         ok: true,
       };
