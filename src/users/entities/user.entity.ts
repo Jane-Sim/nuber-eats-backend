@@ -11,6 +11,7 @@ import * as bcrypt from 'bcrypt';
 import { IsBoolean, IsEmail, IsEnum, IsString } from 'class-validator';
 import { CoreEntity } from 'src/common/entities/core.entity';
 import { Order } from 'src/orders/entities/order.entity';
+import { Payment } from 'src/payments/entities/payment.entity';
 import { Restaurant } from 'src/restaurants/entities/restaurant.entity';
 import { BeforeInsert, BeforeUpdate, Column, Entity, OneToMany } from 'typeorm';
 
@@ -64,6 +65,11 @@ export class User extends CoreEntity {
   @Field((type) => [Order])
   @OneToMany((type) => Order, (order) => order.customer)
   orders: Order[];
+
+  // 1명의 유저는 여러 개의 payment를 가진다.
+  @Field((type) => [Payment])
+  @OneToMany((type) => Payment, (payment) => payment.user)
+  payments: Payment[];
 
   // 1명의 배달원인 driver도 여러 개의 order를 가진다. 라이더의 order용.
   @Field((type) => [Order])

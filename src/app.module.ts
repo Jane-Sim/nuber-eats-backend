@@ -17,6 +17,8 @@ import { OrdersModule } from './orders/orders.module';
 import { Order } from './orders/entities/order.entity';
 import { OrderItem } from './orders/entities/order-item.entity';
 import { CommonModule } from './common/common.module';
+import { PaymentsModule } from './payments/payments.module';
+import { Payment } from './payments/entities/payment.entity';
 
 @Module({
   imports: [
@@ -64,6 +66,7 @@ import { CommonModule } from './common/common.module';
         Dish,
         Order,
         OrderItem,
+        Payment,
       ],
     }),
     // installSubscriptionHandlers: Subscription을 사용하기 위해, WebSocket을 사용하도록 설정하는 기능.
@@ -97,6 +100,7 @@ import { CommonModule } from './common/common.module';
       domain: process.env.MAILGUN_DOMAIN_NAME,
       fromEmail: process.env.MAILGUN_FROM_EMAIL,
     }),
+    PaymentsModule,
   ],
   controllers: [],
   providers: [],
