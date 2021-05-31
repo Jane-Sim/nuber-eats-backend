@@ -19,6 +19,7 @@ import { OrderItem } from './orders/entities/order-item.entity';
 import { CommonModule } from './common/common.module';
 import { PaymentsModule } from './payments/payments.module';
 import { Payment } from './payments/entities/payment.entity';
+import { ScheduleModule } from '@nestjs/schedule';
 
 @Module({
   imports: [
@@ -85,6 +86,8 @@ import { Payment } from './payments/entities/payment.entity';
         };
       },
     }),
+    // cron 기능 사용을 위해, ScheduleModule을 사용한다.
+    ScheduleModule.forRoot(),
     // 다이나믹 모듈인 JwtModule에서 forRoot함수를 통해 정적인 JwtModule을 꺼내오자.
     JwtModule.forRoot({
       secretKey: process.env.SECRET_KEY,

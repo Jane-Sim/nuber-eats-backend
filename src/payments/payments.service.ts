@@ -2,10 +2,11 @@
  * Payment 서비스.
  */
 import { Injectable } from '@nestjs/common';
+import { Cron, CronExpression, SchedulerRegistry } from '@nestjs/schedule';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Restaurant } from 'src/restaurants/entities/restaurant.entity';
 import { User } from 'src/users/entities/user.entity';
-import { Repository } from 'typeorm';
+import { LessThan, Repository } from 'typeorm';
 import {
   CreatePaymentInput,
   CreatePaymentOuput,
@@ -20,6 +21,7 @@ export class PaymentService {
     private readonly payments: Repository<Payment>,
     @InjectRepository(Restaurant)
     private readonly restaurants: Repository<Restaurant>,
+    private schedulerRegistry: SchedulerRegistry,
   ) {}
 
   // owner가 홍보할 레스토랑의 payment를 생성하는 함수
@@ -81,5 +83,25 @@ export class PaymentService {
         error: 'Could not load payments.',
       };
     }
+  }
+
+  // 매일 정각 12시에, 오늘 날짜보다 지난 날짜의 프로모션 레스토랑이 있다면,
+  // 해당 프로모션을 지워주는 Cron 데코레이터를 추가한다.
+  // typeOrm의 LessThan을 통해, 적은 값의 데이터만 DB에서 가져오도록한다.
+  // @Cron(second/minute/hour/day of month/month/day of week)
+  // @Cron('0 0 0 * * *')
+  // CronExpression을 이용해 편리하게 사용할 수 있다.
+  @Cron(CronExpression.EVERY_DAY_AT_MIDNIGHT)
+  async checkPromotedRestaurants(): Promise<void> {
+    const restaurants = await this.restaurants.find({
+      isPromoted: true,
+      promotedUntil: LessThan(new Date()),
+    });
+    // 날짜가 지난 프로모션 수만큼 for문을 돌아, 프로모션을 삭제해준다.
+    restaurants.forEach(async (restaurant) => {
+      restaurant.isPromoted = false;
+      restaurant.promotedUntil = null;
+      await this.restaurants.save(restaurant);
+    });
   }
 }
