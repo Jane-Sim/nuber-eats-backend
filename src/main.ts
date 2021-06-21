@@ -14,6 +14,6 @@ async function bootstrap() {
   app.useGlobalPipes(new ValidationPipe());
   //jwtMiddleware 를 app 전체에서 사용하고 싶으면 아래와 같이 쓴다.
   //app.use(jwtMiddleware)
-  await app.listen(3000);
+  await app.listen(4000);
 }
 bootstrap();
